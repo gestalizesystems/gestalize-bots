@@ -5,124 +5,301 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Lecoland — Painel do Bot</title>
   <style>
-    :root { --azul:#2563eb; --verde:#16a34a; --vermelho:#dc2626; --borda:#e2e8f0; --fundo:#f1f5f9; }
+    :root {
+      --amarelo: #f6c945;        /* amarelo da marca (sidebar) */
+      --amarelo-escuro: #ecbb2c;
+      --navy: #1f3a5f;           /* azul-marinho da marca */
+      --navy-escuro: #16294a;
+      --vermelho: #e0392b;       /* vermelho da marca */
+      --fundo: #eef1f6;
+      --card: #ffffff;
+      --borda: #e6e8ef;
+      --texto: #1e293b;
+      --suave: #6b7280;
+    }
     * { box-sizing: border-box; }
-    body { font-family: -apple-system, system-ui, sans-serif; margin:0; background:var(--fundo); color:#1e293b; padding-bottom:90px; }
-    header { background:#0f172a; color:#fff; padding:16px 20px; }
-    header h1 { margin:0; font-size:18px; }
-    header p { margin:4px 0 0; font-size:13px; color:#94a3b8; }
-    main { max-width:780px; margin:20px auto; padding:0 16px; }
-    .card { background:#fff; border:1px solid var(--borda); border-radius:12px; padding:18px; margin-bottom:18px; }
-    .card h2 { margin:0 0 14px; font-size:16px; }
-    .card .dica { font-size:12px; color:#64748b; margin:-8px 0 14px; }
-    label { display:block; font-size:13px; font-weight:600; margin:10px 0 4px; }
-    input[type=text], textarea { width:100%; padding:9px 11px; border:1px solid var(--borda); border-radius:8px; font-size:14px; font-family:inherit; }
-    textarea { min-height:80px; resize:vertical; }
-    .item { border:1px solid var(--borda); border-radius:10px; padding:14px; margin-bottom:12px; background:#fafafa; position:relative; }
-    .item .titulo-linha { display:flex; gap:10px; align-items:flex-end; }
-    .item .titulo-linha > div { flex:1; }
-    .lixeira { background:none; border:none; color:var(--vermelho); cursor:pointer; font-size:13px; font-weight:600; padding:6px; }
-    .taxa-linha { display:flex; gap:8px; margin-bottom:8px; align-items:center; }
-    .taxa-linha input { flex:1; }
-    button.add { background:#fff; border:1px dashed var(--azul); color:var(--azul); border-radius:8px; padding:9px 14px; cursor:pointer; font-size:13px; font-weight:600; }
-    .switch { display:flex; align-items:center; gap:8px; font-weight:600; font-size:14px; margin-bottom:8px; }
-    .rodape-fixo { position:fixed; bottom:0; left:0; right:0; background:#fff; border-top:1px solid var(--borda); padding:12px 16px; display:flex; align-items:center; gap:14px; justify-content:flex-end; }
-    button.salvar { background:var(--verde); color:#fff; border:none; border-radius:8px; padding:12px 24px; font-size:15px; font-weight:700; cursor:pointer; }
-    button.salvar:disabled { opacity:.6; cursor:default; }
-    #status { font-size:14px; font-weight:600; }
-    .ok { color:var(--verde); } .erro { color:var(--vermelho); }
-    code { background:#eef2ff; padding:1px 5px; border-radius:4px; font-size:12px; }
+    body { margin: 0; font-family: -apple-system, system-ui, "Segoe UI", sans-serif; background: var(--fundo); color: var(--texto); }
+    a { text-decoration: none; color: inherit; }
+
+    .layout { display: flex; min-height: 100vh; }
+
+    /* ===== Sidebar amarela ===== */
+    .sidebar {
+      width: 250px; background: var(--amarelo); color: var(--navy);
+      position: fixed; top: 0; bottom: 0; left: 0; display: flex; flex-direction: column;
+      padding: 18px 14px; gap: 6px; overflow-y: auto;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; padding: 6px 6px 16px; }
+    .logo-wrap {
+      width: 50px; height: 50px; border-radius: 14px; background: #fff; cursor: pointer;
+      position: relative; overflow: hidden; flex: 0 0 auto; box-shadow: 0 2px 6px rgba(0,0,0,.12);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .logo-wrap img { width: 100%; height: 100%; object-fit: cover; display: none; }
+    .logo-ph { font-size: 26px; }
+    .logo-edit {
+      position: absolute; bottom: 0; left: 0; right: 0; background: rgba(31,58,95,.85);
+      color: #fff; font-size: 10px; text-align: center; padding: 1px 0; line-height: 1.4;
+    }
+    .brand-text { display: flex; flex-direction: column; line-height: 1.2; }
+    .brand-text strong { font-size: 16px; }
+    .brand-text span { font-size: 12px; color: var(--navy); opacity: .7; }
+
+    .nav { display: flex; flex-direction: column; gap: 3px; margin-top: 4px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px;
+      font-size: 14px; font-weight: 600; color: var(--navy); cursor: pointer; transition: background .15s;
+    }
+    .nav-item .ic { width: 18px; text-align: center; }
+    .nav-item:hover { background: rgba(31,58,95,.10); }
+    .nav-item.active { background: var(--navy); color: #fff; }
+
+    .side-foot { margin-top: auto; padding: 14px 10px 4px; border-top: 1px solid rgba(31,58,95,.18); }
+    .side-foot .nome { font-weight: 700; font-size: 14px; }
+    .side-foot small { color: var(--navy); opacity: .7; }
+    .dot { color: #1a7f37; }
+
+    /* ===== Main ===== */
+    .main { margin-left: 250px; flex: 1; min-width: 0; display: flex; flex-direction: column; }
+    .topbar {
+      background: #fff; border-bottom: 1px solid var(--borda); padding: 16px 26px;
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      position: sticky; top: 0; z-index: 10;
+    }
+    .topbar h1 { margin: 0; font-size: 20px; color: var(--navy); }
+    .topbar p { margin: 3px 0 0; font-size: 13px; color: var(--suave); }
+    .topbar-actions { display: flex; align-items: center; gap: 14px; }
+    #status { font-size: 13px; font-weight: 600; }
+    .ok { color: #1a7f37; } .erro { color: var(--vermelho); }
+
+    .content { padding: 22px 26px; max-width: 1120px; width: 100%; }
+    .rodape { padding: 18px 26px; color: var(--suave); font-size: 12px; border-top: 1px solid var(--borda); }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    @media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } .sidebar { position: static; width: 100%; height: auto; } .main { margin-left: 0; } .layout { flex-direction: column; } }
+
+    .card { background: var(--card); border: 1px solid var(--borda); border-radius: 14px; padding: 20px; margin-bottom: 18px; }
+    .card h2 { margin: 0 0 4px; font-size: 16px; color: var(--navy); display: flex; align-items: center; gap: 8px; }
+    .card .dica { font-size: 12px; color: var(--suave); margin: 4px 0 14px; }
+    .card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+    .card-head h2 { margin: 0; }
+
+    label { display: block; font-size: 12.5px; font-weight: 600; margin: 10px 0 4px; color: #334155; }
+    input[type=text], textarea {
+      width: 100%; padding: 9px 11px; border: 1px solid var(--borda); border-radius: 9px;
+      font-size: 14px; font-family: inherit; background: #fbfcfe; transition: border .15s, box-shadow .15s;
+    }
+    input[type=text]:focus, textarea:focus { outline: none; border-color: var(--navy); box-shadow: 0 0 0 3px rgba(31,58,95,.12); background: #fff; }
+    textarea { min-height: 76px; resize: vertical; }
+
+    .item { border: 1px solid var(--borda); border-radius: 11px; padding: 14px; margin-bottom: 12px; background: #fafbfd; }
+    .item .titulo-linha { display: flex; gap: 10px; align-items: flex-end; }
+    .item .titulo-linha > div { flex: 1; }
+    .lixeira { background: none; border: none; color: var(--vermelho); cursor: pointer; font-size: 13px; font-weight: 600; padding: 6px; }
+    .taxa-linha { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+    .taxa-linha input { flex: 1; }
+
+    button.add { background: #fff; border: 1px dashed var(--navy); color: var(--navy); border-radius: 9px; padding: 9px 14px; cursor: pointer; font-size: 13px; font-weight: 600; }
+    button.add:hover { background: rgba(31,58,95,.05); }
+    .btn-primary { background: var(--navy); color: #fff; border: none; border-radius: 9px; padding: 10px 18px; font-size: 14px; font-weight: 700; cursor: pointer; }
+    .btn-primary:hover { background: var(--navy-escuro); }
+    .btn-primary:disabled { opacity: .6; cursor: default; }
+
+    .switch { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; margin-bottom: 8px; }
+    code { background: #eef2ff; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+    .pill { display:inline-block; background:#eef2ff; color: var(--navy); padding:2px 7px; border-radius:6px; font-size:11px; font-weight:600; }
   </style>
 </head>
 <body>
-  <header>
-    <h1>🐾 Painel do Bot — <span id="hNome">Lecoland</span></h1>
-    <p>Edite as respostas, palavras-chave e taxas. Clique em <b>Salvar</b> e o bot já usa as mudanças.</p>
-  </header>
+  <div class="layout">
+    <!-- ===== Sidebar ===== -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo-wrap" id="logoWrap" title="Clique para trocar a logo">
+          <img id="logoImg" alt="Logo da loja" />
+          <span class="logo-ph" id="logoPh">🐾</span>
+          <span class="logo-edit">trocar</span>
+        </div>
+        <div class="brand-text"><strong id="hNome">Lecoland</strong><span>Painel do Bot</span></div>
+        <input type="file" id="logoInput" accept="image/*" hidden />
+      </div>
 
-  <main>
-    <section class="card">
-      <h2>📋 Dados do negócio</h2>
-      <p class="dica">Esses dados aparecem nas respostas. Você pode usá-los em qualquer texto com <code>{nome}</code>, <code>{telefone}</code>, <code>{endereco}</code>, <code>{pagamento}</code>, <code>{horarioSemana}</code>, etc.</p>
-      <label>Nome</label><input type="text" id="n_nome" />
-      <label>Tipo (ex.: Pet Shop e Clínica Veterinária)</label><input type="text" id="n_tipo" />
-      <label>Endereço</label><input type="text" id="n_endereco" />
-      <label>Telefone</label><input type="text" id="n_telefone" />
-      <label>Horário (segunda a sexta)</label><input type="text" id="n_horarioSemana" />
-      <label>Horário (sábado)</label><input type="text" id="n_horarioSabado" />
-      <label>Horário (domingo/feriados)</label><input type="text" id="n_horarioDomingo" />
-      <label>Formas de pagamento</label><input type="text" id="n_pagamento" />
-    </section>
+      <nav class="nav" id="nav">
+        <a class="nav-item active" data-target="sec-negocio"><span class="ic">🏪</span> Dados do negócio</a>
+        <a class="nav-item" data-target="sec-mensagens"><span class="ic">💬</span> Mensagens</a>
+        <a class="nav-item" data-target="sec-opcoes"><span class="ic">🔢</span> Opções do Menu</a>
+        <a class="nav-item" data-target="sec-faq"><span class="ic">❓</span> Respostas Rápidas</a>
+        <a class="nav-item" data-target="sec-entrega"><span class="ic">🛵</span> Taxas e Serviços</a>
+        <a class="nav-item" data-target="sec-gatilhos"><span class="ic">⚙️</span> Palavras-chave</a>
+      </nav>
 
-    <section class="card">
-      <h2>💬 Mensagens</h2>
-      <p class="dica">Use <code>*texto*</code> para <b>negrito</b> no WhatsApp e Enter para pular linha.</p>
-      <label>Saudação — linha 1</label><textarea id="m_saudacaoIntro"></textarea>
-      <label>Saudação — chamada (acima do menu)</label><textarea id="m_saudacaoChamada"></textarea>
-      <label>Saudação — rodapé</label><textarea id="m_saudacaoRodape"></textarea>
-      <label>Resposta ao pedir atendente humano</label><textarea id="m_atendente"></textarea>
-    </section>
+      <div class="side-foot">
+        <div class="nome" id="botNome">Lecoland Pet Shop</div>
+        <small><span class="dot">●</span> Painel local</small>
+      </div>
+    </aside>
 
-    <section class="card">
-      <h2>🔢 Opções numeradas</h2>
-      <p class="dica">Cada item vira uma opção numerada no menu (1, 2, 3...). <b>Palavras-chave</b> separadas por vírgula.</p>
-      <div id="lista_servicos"></div>
-      <button class="add" onclick="addServico()">+ Adicionar opção</button>
-    </section>
+    <!-- ===== Main ===== -->
+    <div class="main">
+      <header class="topbar">
+        <div>
+          <h1>Configurações do Bot</h1>
+          <p>Gerencie as informações e o conteúdo do seu atendimento automático.</p>
+        </div>
+        <div class="topbar-actions">
+          <span id="status"></span>
+          <button class="btn-primary" id="btnSalvar" onclick="salvar()">💾 Salvar tudo</button>
+        </div>
+      </header>
 
-    <section class="card">
-      <h2>❓ Respostas rápidas (FAQ)</h2>
-      <p class="dica">Horário, endereço, pagamento e outras dúvidas comuns.</p>
-      <div id="lista_faq"></div>
-      <button class="add" onclick="addFaq()">+ Adicionar FAQ</button>
-    </section>
+      <main class="content">
+        <section class="card" id="sec-negocio">
+          <h2>🏪 Dados do negócio</h2>
+          <p class="dica">Esses dados aparecem nas respostas. Você pode usar variáveis em qualquer texto:
+            <span class="pill">{nome}</span> <span class="pill">{telefone}</span> <span class="pill">{endereco}</span>
+            <span class="pill">{pagamento}</span> <span class="pill">{horarioSemana}</span> etc.</p>
+          <div class="grid-2">
+            <div><label>Nome</label><input type="text" id="n_nome" /></div>
+            <div><label>Tipo (ex.: Pet Shop e Clínica Veterinária)</label><input type="text" id="n_tipo" /></div>
+            <div><label>Endereço</label><input type="text" id="n_endereco" /></div>
+            <div><label>Telefone</label><input type="text" id="n_telefone" /></div>
+            <div><label>Horário (segunda a sexta)</label><input type="text" id="n_horarioSemana" /></div>
+            <div><label>Horário (sábado)</label><input type="text" id="n_horarioSabado" /></div>
+            <div><label>Horário (domingo/feriados)</label><input type="text" id="n_horarioDomingo" /></div>
+            <div><label>Formas de pagamento</label><input type="text" id="n_pagamento" /></div>
+          </div>
+        </section>
 
-    <section class="card">
-      <h2>🛵 Entrega / Taxas</h2>
-      <label class="switch"><input type="checkbox" id="e_ativo" /> Mostrar opção de entrega no menu</label>
-      <label>Título no menu</label><input type="text" id="e_titulo" />
-      <label>Palavras-chave (separadas por vírgula)</label><input type="text" id="e_gatilhos" />
-      <label>Texto de introdução</label><textarea id="e_intro"></textarea>
-      <label>Rodapé (opcional)</label><textarea id="e_rodape"></textarea>
-      <label>📍 Endereço de partida (a loja)</label>
-      <p class="dica">Usado para medir a distância até o endereço do cliente. Coloque o endereço completo e real da loja (rua, número, bairro, cidade - UF).</p>
-      <input type="text" id="e_origem" />
-      <label>Tabela de taxas (serviço · até km · valor · observação)</label>
-      <p class="dica">O bot calcula sozinho: pelo serviço + distância, escolhe a faixa "até X km". Deixe o <b>km vazio</b> para um local fixo (ex.: Caucaia). A <b>observação</b> é opcional (bairro/referência).</p>
-      <datalist id="servicos_entrega">
-        <option value="Entrega (moto)"></option>
-        <option value="Táxi Dog moto (ida e volta)"></option>
-        <option value="Táxi Dog carro (ida e volta)"></option>
-      </datalist>
-      <div id="lista_taxas"></div>
-      <button class="add" onclick="addTaxa()">+ Adicionar taxa</button>
-    </section>
+        <div class="grid-2">
+          <section class="card" id="sec-mensagens">
+            <h2>💬 Mensagens</h2>
+            <p class="dica">Use <code>*texto*</code> para <b>negrito</b> no WhatsApp e Enter para pular linha.</p>
+            <label>Saudação — linha 1</label><textarea id="m_saudacaoIntro"></textarea>
+            <label>Saudação — chamada (acima do menu)</label><textarea id="m_saudacaoChamada"></textarea>
+            <label>Saudação — rodapé</label><textarea id="m_saudacaoRodape"></textarea>
+            <label>Resposta ao pedir atendente humano</label><textarea id="m_atendente"></textarea>
+          </section>
 
-    <section class="card">
-      <h2>⚙️ Palavras-chave gerais</h2>
-      <label>Pedir atendente humano (vírgula)</label><input type="text" id="g_atendente" />
-      <label>Abrir o menu / saudação (vírgula)</label><input type="text" id="g_saudacao" />
-    </section>
-  </main>
+          <section class="card" id="sec-opcoes">
+            <div class="card-head"><h2>🔢 Opções do Menu</h2></div>
+            <p class="dica">Cada item vira uma opção numerada no menu (1, 2, 3...). <b>Palavras-chave</b> separadas por vírgula.</p>
+            <div id="lista_servicos"></div>
+            <button class="add" onclick="addServico()">+ Adicionar opção</button>
+          </section>
+        </div>
 
-  <div class="rodape-fixo">
-    <span id="status"></span>
-    <button class="salvar" id="btnSalvar" onclick="salvar()">💾 Salvar tudo</button>
+        <section class="card" id="sec-faq">
+          <div class="card-head"><h2>❓ Respostas Rápidas (FAQ)</h2></div>
+          <p class="dica">Respostas para dúvidas comuns dos clientes (horário, endereço, pagamento...).</p>
+          <div id="lista_faq"></div>
+          <button class="add" onclick="addFaq()">+ Adicionar FAQ</button>
+        </section>
+
+        <section class="card" id="sec-entrega">
+          <h2>🛵 Taxas e Serviços (Entrega / Táxi Dog)</h2>
+          <p class="dica">O bot calcula o valor pela distância. Edite serviços, faixas de km e o endereço de partida.</p>
+          <label class="switch"><input type="checkbox" id="e_ativo" /> Mostrar opção de entrega no menu</label>
+          <div class="grid-2">
+            <div><label>Título no menu</label><input type="text" id="e_titulo" /></div>
+            <div><label>Palavras-chave (separadas por vírgula)</label><input type="text" id="e_gatilhos" /></div>
+          </div>
+          <label>Texto de introdução</label><textarea id="e_intro"></textarea>
+          <label>Rodapé (opcional)</label><textarea id="e_rodape"></textarea>
+          <label>📍 Endereço de partida (a loja)</label>
+          <p class="dica">Usado para medir a distância até o endereço do cliente. Coloque o endereço completo e real (rua, número, bairro, cidade - UF).</p>
+          <input type="text" id="e_origem" />
+          <label>Tabela de taxas (serviço · até km · valor · observação)</label>
+          <p class="dica">Deixe o <b>km vazio</b> para um local fixo (ex.: Caucaia). A <b>observação</b> é opcional (bairro/referência).</p>
+          <datalist id="servicos_entrega">
+            <option value="Entrega (moto)"></option>
+            <option value="Táxi Dog moto (ida e volta)"></option>
+            <option value="Táxi Dog carro (ida e volta)"></option>
+          </datalist>
+          <div id="lista_taxas"></div>
+          <button class="add" onclick="addTaxa()">+ Adicionar taxa</button>
+        </section>
+
+        <section class="card" id="sec-gatilhos">
+          <h2>⚙️ Palavras-chave gerais</h2>
+          <p class="dica">Atalhos para o bot entender comandos importantes.</p>
+          <label>Pedir atendente humano (vírgula)</label><input type="text" id="g_atendente" />
+          <label>Abrir o menu / saudação (vírgula)</label><input type="text" id="g_saudacao" />
+        </section>
+      </main>
+
+      <footer class="rodape">© <span id="ano"></span> Lecoland — Painel do Bot</footer>
+    </div>
   </div>
 
   <script>
     let cfg = null;
+    let logoAtual = "";
 
     function el(id) { return document.getElementById(id); }
+    function esc(s) { return String(s == null ? "" : s).replace(/"/g, "&quot;").replace(/</g, "&lt;"); }
     function slug(s) {
       return (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
         .replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "item_" + Date.now();
     }
     function listaParaTexto(arr) { return (arr || []).join(", "); }
     function textoParaLista(t) { return (t || "").split(",").map(s => s.trim()).filter(Boolean); }
+    function flash(msg, cls) { const s = el("status"); s.textContent = msg; s.className = cls || ""; if (cls === "ok") setTimeout(() => { if (s.className === "ok") s.textContent = ""; }, 5000); }
 
-    // ---- Serviços / FAQ (mesma estrutura) ----
-    function itemHtml(prefixo, idx, o) {
+    // ===== Logo =====
+    function setLogo(path) {
+      const img = el("logoImg"), ph = el("logoPh");
+      if (path) { img.src = path + "?v=" + Date.now(); img.style.display = "block"; ph.style.display = "none"; }
+      else { img.style.display = "none"; ph.style.display = "block"; }
+    }
+    el("logoWrap").addEventListener("click", () => el("logoInput").click());
+    el("logoInput").addEventListener("change", async (e) => {
+      const file = e.target.files[0]; if (!file) return;
+      try {
+        const dataUrl = await downscale(file, 320);
+        const r = await fetch("/api/logo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dataUrl }) });
+        const j = await r.json();
+        if (j.ok) { setLogo(j.path); logoAtual = j.path; flash("✅ Logo atualizada!", "ok"); }
+        else flash("❌ " + (j.erro || "Erro ao enviar a logo"), "erro");
+      } catch (err) { flash("❌ " + err.message, "erro"); }
+      e.target.value = "";
+    });
+    function downscale(file, max) {
+      return new Promise((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onload = () => {
+          const img = new Image();
+          img.onload = () => {
+            let w = img.width, h = img.height; const s = Math.min(1, max / Math.max(w, h));
+            w = Math.round(w * s); h = Math.round(h * s);
+            const c = document.createElement("canvas"); c.width = w; c.height = h;
+            c.getContext("2d").drawImage(img, 0, 0, w, h);
+            resolve(c.toDataURL("image/png"));
+          };
+          img.onerror = reject; img.src = fr.result;
+        };
+        fr.onerror = reject; fr.readAsDataURL(file);
+      });
+    }
+
+    // ===== Navegação (scroll para seção) =====
+    document.querySelectorAll(".nav-item").forEach(it => {
+      it.addEventListener("click", () => {
+        const sec = el(it.dataset.target);
+        if (sec) sec.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
+    const secs = [...document.querySelectorAll("section.card")];
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach(en => {
+        if (en.isIntersecting) {
+          document.querySelectorAll(".nav-item").forEach(n => n.classList.toggle("active", n.dataset.target === en.target.id));
+        }
+      });
+    }, { rootMargin: "-45% 0px -50% 0px" });
+    secs.forEach(s => obs.observe(s));
+
+    // ===== Opções / FAQ =====
+    function itemHtml(prefixo, o) {
       const div = document.createElement("div");
       div.className = "item";
       div.innerHTML = `
@@ -137,18 +314,16 @@
         <input type="hidden" class="${prefixo}_chave" value="${esc(o.chave || '')}" />`;
       return div;
     }
-    function addServico() { el("lista_servicos").appendChild(itemHtml("sv", 0, { titulo: "", gatilhos: [], resposta: "" })); }
-    function addFaq() { el("lista_faq").appendChild(itemHtml("fq", 0, { titulo: "", gatilhos: [], resposta: "" })); }
-
+    function addServico() { el("lista_servicos").appendChild(itemHtml("sv", { titulo: "", gatilhos: [], resposta: "" })); }
+    function addFaq() { el("lista_faq").appendChild(itemHtml("fq", { titulo: "", gatilhos: [], resposta: "" })); }
     function coletarItens(containerId, prefixo) {
       const out = [];
       el(containerId).querySelectorAll(".item").forEach(item => {
         const titulo = item.querySelector("." + prefixo + "_titulo").value.trim();
         if (!titulo) return;
-        let chave = item.querySelector("." + prefixo + "_chave").value.trim() || slug(titulo);
+        const chave = item.querySelector("." + prefixo + "_chave").value.trim() || slug(titulo);
         out.push({
-          chave,
-          titulo,
+          chave, titulo,
           gatilhos: textoParaLista(item.querySelector("." + prefixo + "_gatilhos").value),
           resposta: item.querySelector("." + prefixo + "_resposta").value,
         });
@@ -156,7 +331,7 @@
       return out;
     }
 
-    // ---- Taxas ----
+    // ===== Taxas =====
     function taxaHtml(t) {
       const div = document.createElement("div");
       div.className = "taxa-linha";
@@ -185,18 +360,17 @@
       return out;
     }
 
-    function esc(s) { return String(s == null ? "" : s).replace(/"/g, "&quot;").replace(/</g, "&lt;"); }
-
-    // ---- Carregar ----
+    // ===== Carregar =====
     async function carregar() {
       cfg = await (await fetch("/api/config")).json();
       const n = cfg.negocio, m = cfg.mensagens, e = cfg.entrega;
-      el("hNome").textContent = n.nome;
+      el("hNome").textContent = n.nome; el("botNome").textContent = n.nome;
+      logoAtual = n.logo || ""; setLogo(logoAtual);
       ["nome","tipo","endereco","telefone","horarioSemana","horarioSabado","horarioDomingo","pagamento"]
         .forEach(k => el("n_" + k).value = n[k] || "");
       ["saudacaoIntro","saudacaoChamada","saudacaoRodape","atendente"].forEach(k => el("m_" + k).value = m[k] || "");
-      cfg.servicos.forEach(s => el("lista_servicos").appendChild(itemHtml("sv", 0, s)));
-      cfg.faqRapido.forEach(f => el("lista_faq").appendChild(itemHtml("fq", 0, f)));
+      cfg.servicos.forEach(s => el("lista_servicos").appendChild(itemHtml("sv", s)));
+      cfg.faqRapido.forEach(f => el("lista_faq").appendChild(itemHtml("fq", f)));
       el("e_ativo").checked = !!e.ativo;
       el("e_titulo").value = e.titulo || "";
       el("e_gatilhos").value = listaParaTexto(e.gatilhos);
@@ -206,10 +380,12 @@
       (e.taxas || []).forEach(t => el("lista_taxas").appendChild(taxaHtml(t)));
       el("g_atendente").value = listaParaTexto(cfg.gatilhosAtendente);
       el("g_saudacao").value = listaParaTexto(cfg.gatilhosSaudacao);
+      el("ano").textContent = new Date().getFullYear();
     }
 
-    // ---- Salvar ----
+    // ===== Salvar =====
     async function salvar() {
+      const origemAtual = (cfg && cfg.entrega && cfg.entrega.origem) || {};
       const novo = {
         negocio: {},
         mensagens: {},
@@ -221,7 +397,7 @@
           gatilhos: textoParaLista(el("e_gatilhos").value),
           intro: el("e_intro").value,
           rodape: el("e_rodape").value,
-          origem: { endereco: el("e_origem").value.trim() },
+          origem: { endereco: el("e_origem").value.trim(), lat: origemAtual.lat, lon: origemAtual.lon },
           taxas: coletarTaxas(),
         },
         gatilhosAtendente: textoParaLista(el("g_atendente").value),
@@ -229,24 +405,21 @@
       };
       ["nome","tipo","endereco","telefone","horarioSemana","horarioSabado","horarioDomingo","pagamento"]
         .forEach(k => novo.negocio[k] = el("n_" + k).value.trim());
+      novo.negocio.logo = logoAtual;
       ["saudacaoIntro","saudacaoChamada","saudacaoRodape","atendente"].forEach(k => novo.mensagens[k] = el("m_" + k).value);
 
-      const btn = el("btnSalvar"), status = el("status");
-      btn.disabled = true; status.textContent = "Salvando...";
-      status.className = "";
+      // Se o endereço de partida mudou, zera as coordenadas para recalcular.
+      if ((origemAtual.endereco || "") !== novo.entrega.origem.endereco) { novo.entrega.origem.lat = undefined; novo.entrega.origem.lon = undefined; }
+
+      const btn = el("btnSalvar");
+      btn.disabled = true; flash("Salvando...", "");
       try {
-        const r = await fetch("/api/config", {
-          method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(novo),
-        });
+        const r = await fetch("/api/config", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(novo) });
         const j = await r.json();
-        if (j.ok) { status.textContent = "✅ Salvo! O bot já está usando as mudanças."; status.className = "ok"; el("hNome").textContent = novo.negocio.nome; }
-        else { status.textContent = "❌ " + (j.erro || "Erro ao salvar"); status.className = "erro"; }
-      } catch (err) {
-        status.textContent = "❌ Não consegui salvar: " + err.message; status.className = "erro";
-      } finally {
-        btn.disabled = false;
-        setTimeout(() => { if (status.className === "ok") status.textContent = ""; }, 5000);
-      }
+        if (j.ok) { flash("✅ Salvo! O bot já está usando as mudanças.", "ok"); el("hNome").textContent = novo.negocio.nome; el("botNome").textContent = novo.negocio.nome; cfg = novo; }
+        else flash("❌ " + (j.erro || "Erro ao salvar"), "erro");
+      } catch (err) { flash("❌ Não consegui salvar: " + err.message, "erro"); }
+      finally { btn.disabled = false; }
     }
 
     carregar();
