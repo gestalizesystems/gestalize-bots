@@ -7,6 +7,7 @@ const config = require("./config");
 
 const ORS_KEY = process.env.ORS_API_KEY;
 const BASE = "https://api.openrouteservice.org";
+const MAX_RAIO_KM = 50; // só aceita endereços dentro desse raio da loja (evita matches errados em outra cidade)
 
 let origemCache = null; // { lat, lon, endereco } — evita geocodificar a loja toda hora
 
@@ -17,7 +18,11 @@ function temChave() {
 // Texto → coordenadas. `focus` (coords da loja) ajuda a desambiguar bairros.
 async function geocode(endereco, focus) {
   let url = `${BASE}/geocode/search?api_key=${ORS_KEY}&text=${encodeURIComponent(endereco)}&boundary.country=BR&size=1`;
-  if (focus) url += `&focus.point.lon=${focus.lon}&focus.point.lat=${focus.lat}`;
+  if (focus) {
+    // Prioriza e RESTRINGE a resultados perto da loja — evita casar com lugar de mesmo nome em outra cidade.
+    url += `&focus.point.lon=${focus.lon}&focus.point.lat=${focus.lat}`;
+    url += `&boundary.circle.lon=${focus.lon}&boundary.circle.lat=${focus.lat}&boundary.circle.radius=${MAX_RAIO_KM}`;
+  }
   const r = await fetch(url);
   if (!r.ok) throw new Error("geocode HTTP " + r.status);
   const j = await r.json();
@@ -59,7 +64,7 @@ async function consultarTaxaPorEndereco(endereco) {
     const destino = await geocode(endereco, origem);
     if (!destino) return { encontrado: false };
     const km = await distanciaKm(origem, destino);
-    if (km == null) return { encontrado: false };
+    if (km == null || km > MAX_RAIO_KM) return { encontrado: false }; // fora da área / endereço suspeito
     return {
       encontrado: true,
       endereco_reconhecido: destino.label,

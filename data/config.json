@@ -2,8 +2,8 @@
   "negocio": {
     "nome": "Lecoland",
     "tipo": "Pet Shop e Clínica Veterinária",
-    "endereco": "Rua dos Animais, 123 — Centro",
-    "telefone": "(00) 0000-0000",
+    "endereco": "R. Dois, 190 - Passaré, Fortaleza - CE, 60744-320",
+    "telefone": "(85) 98225-8020",
     "horarioSemana": "Segunda a sexta, das 8h às 19h",
     "horarioSabado": "Sábado, das 8h às 14h",
     "horarioDomingo": "Domingo e feriados: fechado",
@@ -61,7 +61,7 @@
     "gatilhos": ["entrega", "delivery", "frete", "taxa", "entregam", "taxa de entrega", "taxi dog", "taxidog", "leva e traz", "buscar", "buscam"],
     "intro": "🛵 *Taxas de entrega e Táxi Dog*\n(Táxi Dog é ida e volta)",
     "rodape": "Me diga seu *endereço completo* (ou a distância em km) e qual serviço — *entrega moto*, *táxi dog moto* ou *táxi dog carro* — que eu calculo o valor. 🐾",
-    "origem": { "endereco": "Rua dos Animais, 123, Centro, Fortaleza - CE" },
+    "origem": { "endereco": "R. Dois, 190 - Passaré, Fortaleza - CE", "lat": -3.802437, "lon": -38.534313 },
     "taxas": [
       { "servico": "Entrega (moto)", "ate_km": 2, "valor": "5,00", "obs": "Sumaré" },
       { "servico": "Entrega (moto)", "ate_km": 3, "valor": "8,00", "obs": "Dias Macedo, Pq Dois Irmãos" },
