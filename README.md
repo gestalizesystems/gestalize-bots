@@ -28,7 +28,7 @@ cp .env.example .env
 # 3. (opcional) Teste a triagem sem WhatsApp nem API
 node test-triagem.js
 
-# 4. Suba o bot (também abre o painel em http://localhost:3000)
+# 4. Suba o bot (também abre o painel em http://localhost:4500)
 npm start
 ```
 
@@ -38,7 +38,7 @@ Na primeira vez, um **QR code** aparece no terminal. No celular: WhatsApp → *A
 
 Você **não precisa mexer em código**. Toda a configuração fica em `data/config.json`, editável por um painel web:
 
-- Com o bot rodando (`npm start`), abra **http://localhost:3000**.
+- Com o bot rodando (`npm start`), abra **http://localhost:4500**.
 - Ou abra **só o painel** (sem conectar o WhatsApp): `npm run painel`.
 
 No painel você edita:
