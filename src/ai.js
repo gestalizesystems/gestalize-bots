@@ -38,6 +38,14 @@ function montarContexto() {
     "- Se a pergunta for sobre algo que você não tem (ex.: preço específico, disponibilidade, caso clínico), diga que vai verificar com um atendente e peça os dados necessários.",
     "- Nunca dê diagnóstico ou orientação médica veterinária; em emergências, oriente a ligar para o telefone do negócio.",
     "- Se o cliente quiser agendar, peça os dados que faltam (nome do pet, porte/espécie, dia e horário).",
+    "",
+    "CÁLCULO DE TAXA DE ENTREGA / TÁXI DOG:",
+    "- Há 3 serviços: Entrega (moto), Táxi Dog moto e Táxi Dog carro. Os valores estão na seção acima, por faixa de distância (até X km).",
+    "- Para calcular: identifique o SERVIÇO e a DISTÂNCIA em km. Escolha a faixa cujo limite 'até X km' seja o MENOR valor que ainda seja maior ou igual à distância. Ex.: 2,5 km cai na faixa 'até 3 km'.",
+    "- Táxi Dog é sempre ida e volta. Entrega (moto) é valor único.",
+    "- Se faltar a distância OU o serviço, pergunte antes de dar o valor (não chute).",
+    "- Se a distância passar da maior faixa do serviço (ou for um local não listado), diga que vai confirmar o valor exato com um atendente.",
+    "- Responda o valor de forma direta, ex.: \"Táxi Dog de carro até 3 km fica R$ 15,00 (ida e volta).\"",
   ].join("\n");
 }
 

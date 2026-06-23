@@ -84,9 +84,15 @@
       <label>Palavras-chave (separadas por vírgula)</label><input type="text" id="e_gatilhos" />
       <label>Texto de introdução</label><textarea id="e_intro"></textarea>
       <label>Rodapé (opcional)</label><textarea id="e_rodape"></textarea>
-      <label>Taxas por bairro</label>
+      <label>Tabela de taxas (serviço · até km · valor · observação)</label>
+      <p class="dica">O bot calcula sozinho: pelo serviço + distância, escolhe a faixa "até X km". Deixe o <b>km vazio</b> para um local fixo (ex.: Caucaia). A <b>observação</b> é opcional (bairro/referência).</p>
+      <datalist id="servicos_entrega">
+        <option value="Entrega (moto)"></option>
+        <option value="Táxi Dog moto (ida e volta)"></option>
+        <option value="Táxi Dog carro (ida e volta)"></option>
+      </datalist>
       <div id="lista_taxas"></div>
-      <button class="add" onclick="addTaxa()">+ Adicionar bairro</button>
+      <button class="add" onclick="addTaxa()">+ Adicionar taxa</button>
     </section>
 
     <section class="card">
@@ -151,9 +157,12 @@
     function taxaHtml(t) {
       const div = document.createElement("div");
       div.className = "taxa-linha";
+      const km = (t.ate_km === null || t.ate_km === undefined) ? "" : t.ate_km;
       div.innerHTML = `
-        <input type="text" class="tx_bairro" placeholder="Bairro" value="${esc(t.bairro || '')}" />
-        <input type="text" class="tx_valor" placeholder="Valor (ex.: 8,00)" value="${esc(t.valor || '')}" />
+        <input type="text" class="tx_servico" list="servicos_entrega" placeholder="Serviço" value="${esc(t.servico || '')}" style="flex:2" />
+        <input type="text" class="tx_km" placeholder="até km" value="${esc(km)}" style="flex:0 0 64px" />
+        <input type="text" class="tx_valor" placeholder="Valor" value="${esc(t.valor || '')}" style="flex:0 0 80px" />
+        <input type="text" class="tx_obs" placeholder="Obs (bairro/ref.)" value="${esc(t.obs || '')}" style="flex:1" />
         <button class="lixeira" onclick="this.closest('.taxa-linha').remove()">🗑</button>`;
       return div;
     }
@@ -161,9 +170,14 @@
     function coletarTaxas() {
       const out = [];
       el("lista_taxas").querySelectorAll(".taxa-linha").forEach(l => {
-        const bairro = l.querySelector(".tx_bairro").value.trim();
+        const servico = l.querySelector(".tx_servico").value.trim();
+        const kmRaw = l.querySelector(".tx_km").value.trim();
         const valor = l.querySelector(".tx_valor").value.trim();
-        if (bairro) out.push({ bairro, valor });
+        const obs = l.querySelector(".tx_obs").value.trim();
+        if (!servico && !valor) return;
+        let ate_km = "";
+        if (kmRaw !== "") { const n = Number(kmRaw.replace(",", ".")); ate_km = isNaN(n) ? "" : n; }
+        out.push({ servico, ate_km, valor, obs });
       });
       return out;
     }

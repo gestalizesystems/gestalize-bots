@@ -46,12 +46,30 @@ function preencher(texto) {
     .replace(/{pagamento}/g, n.pagamento);
 }
 
-// Monta o texto da resposta de entrega a partir das taxas cadastradas.
+// Monta o texto da resposta de entrega: agrupa as taxas por serviço e lista
+// os valores por faixa de distância (até X km) ou por local fixo (ex.: Caucaia).
 function respostaEntrega() {
   const e = dados.entrega;
-  const linhas = (e.taxas || []).map((t) => `• ${t.bairro}: R$ ${t.valor}`).join("\n");
+  const grupos = []; // preserva a ordem de aparição dos serviços
+  for (const t of e.taxas || []) {
+    const nome = t.servico || "Entrega";
+    let g = grupos.find((x) => x.servico === nome);
+    if (!g) {
+      g = { servico: nome, linhas: [] };
+      grupos.push(g);
+    }
+    const obs = t.obs ? ` (${t.obs})` : "";
+    if (t.ate_km === "" || t.ate_km === null || t.ate_km === undefined) {
+      // Entrada de local fixo (sem faixa de km).
+      g.linhas.push(`• ${t.obs || "outras localidades"}: R$ ${t.valor}`);
+    } else {
+      g.linhas.push(`• até ${t.ate_km} km: R$ ${t.valor}${obs}`);
+    }
+  }
+  const blocos = grupos.map((g) => `*${g.servico}*\n${g.linhas.join("\n")}`).join("\n\n");
+
   let texto = e.intro;
-  if (linhas) texto += "\n" + linhas;
+  if (blocos) texto += "\n\n" + blocos;
   if (e.rodape) texto += "\n\n" + e.rodape;
   return preencher(texto);
 }

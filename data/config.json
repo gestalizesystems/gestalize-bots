@@ -33,12 +33,6 @@
       "titulo": "Vacinação",
       "gatilhos": ["vacina", "vacinacao", "v8", "v10", "antirrabica", "raiva"],
       "resposta": "💉 *Vacinação*\n\nTrabalhamos com as principais vacinas para cães e gatos (V8, V10, antirrábica, etc.).\nOs valores variam conforme a vacina. Me diga a *espécie*, a *idade do pet* e *qual vacina* precisa que eu verifico o preço e a disponibilidade."
-    },
-    {
-      "chave": "leva_traz",
-      "titulo": "Leva e Traz (pet)",
-      "gatilhos": ["leva e traz", "buscar", "buscam", "taxi dog", "transporte do pet"],
-      "resposta": "🚐 *Leva e Traz*\n\nBuscamos e devolvemos seu pet em casa (consulte a área de cobertura). Me passe seu *bairro* que eu confirmo se atendemos e o valor."
     }
   ],
   "faqRapido": [
@@ -63,13 +57,23 @@
   ],
   "entrega": {
     "ativo": true,
-    "titulo": "Entrega / Taxas",
-    "gatilhos": ["entrega", "delivery", "frete", "taxa", "entregam", "taxa de entrega"],
-    "intro": "🛵 *Entrega*\n\nFazemos entrega de produtos nos seguintes bairros:",
-    "rodape": "Não achou seu bairro? Me diga qual é que eu verifico.",
+    "titulo": "Entrega / Táxi Dog",
+    "gatilhos": ["entrega", "delivery", "frete", "taxa", "entregam", "taxa de entrega", "taxi dog", "taxidog", "leva e traz", "buscar", "buscam"],
+    "intro": "🛵 *Taxas de entrega e Táxi Dog*\n(Táxi Dog é ida e volta)",
+    "rodape": "Me diga a *distância em km* (ou seu bairro) e qual serviço — *entrega moto*, *táxi dog moto* ou *táxi dog carro* — que eu calculo o valor. 🐾",
     "taxas": [
-      { "bairro": "Centro", "valor": "5,00" },
-      { "bairro": "Jardim das Flores", "valor": "8,00" }
+      { "servico": "Entrega (moto)", "ate_km": 2, "valor": "5,00", "obs": "Sumaré" },
+      { "servico": "Entrega (moto)", "ate_km": 3, "valor": "8,00", "obs": "Dias Macedo, Pq Dois Irmãos" },
+      { "servico": "Entrega (moto)", "ate_km": 4, "valor": "10,00", "obs": "" },
+      { "servico": "Entrega (moto)", "ate_km": 6, "valor": "15,00", "obs": "" },
+      { "servico": "Entrega (moto)", "ate_km": 10, "valor": "20,00", "obs": "" },
+      { "servico": "Entrega (moto)", "ate_km": "", "valor": "28,00", "obs": "Caucaia" },
+      { "servico": "Táxi Dog moto (ida e volta)", "ate_km": 2, "valor": "8,00", "obs": "" },
+      { "servico": "Táxi Dog moto (ida e volta)", "ate_km": 3, "valor": "10,00", "obs": "" },
+      { "servico": "Táxi Dog moto (ida e volta)", "ate_km": 5, "valor": "15,00", "obs": "" },
+      { "servico": "Táxi Dog carro (ida e volta)", "ate_km": 2, "valor": "10,00", "obs": "" },
+      { "servico": "Táxi Dog carro (ida e volta)", "ate_km": 3, "valor": "15,00", "obs": "" },
+      { "servico": "Táxi Dog carro (ida e volta)", "ate_km": 5, "valor": "20,00", "obs": "" }
     ]
   },
   "gatilhosAtendente": ["atendente", "humano", "pessoa", "falar com alguem", "reclamacao"],
