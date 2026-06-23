@@ -73,5 +73,5 @@ test-triagem.js → teste offline da triagem
 ## Observações
 
 - **Custo:** o Gemini tem uma cota **gratuita** generosa por dia, e só perguntas livres (que não casam com palavra-chave) chamam a IA — as respostas de menu são instantâneas e não consomem cota. Limites do plano gratuito: https://ai.google.dev/gemini-api/docs/rate-limits
-- **whatsapp-web.js não é oficial.** É ótimo para protótipo e uso interno; para escala/produção considere a [WhatsApp Cloud API](https://developers.facebook.com/docs/whatsapp/cloud-api) oficial da Meta.
+- **whatsapp-web.js não é oficial.** É ótimo para protótipo e uso interno; para escala/produção considere a [WhatsApp Cloud API](https://developers.facebook.com/docs/whatsapp/cloud-api) oficial da Meta. 👉 Veja o guia completo de prós/contras e passo a passo da migração em **[MIGRACAO.md](MIGRACAO.md)**.
 - **Sessão/estado em memória:** o handoff para humano e o histórico de conversa vivem na RAM e somem ao reiniciar. Para produção, troque por Redis ou um banco.
