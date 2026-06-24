@@ -21,8 +21,10 @@
     .deco-canvas { top: 0; left: 0; width: 100%; height: 100%; }
     .deco-blob1 { top: -120px; left: -120px; width: 420px; height: 420px; border-radius: 50%;
       background: radial-gradient(circle at 50% 50%, rgba(79,140,246,.10), transparent 70%); }
-    .deco-blob2 { top: -80px; right: -80px; width: 360px; height: 360px; border-radius: 50%;
-      background: radial-gradient(circle at 50% 50%, rgba(79,140,246,.08), transparent 70%); }
+    .deco-blob2 { top: -70px; right: 40px; width: 540px; height: 500px; border-radius: 50%;
+      background: radial-gradient(circle at 58% 42%, rgba(202,210,228,.6), transparent 62%); }
+    .deco-blob3 { bottom: -60px; left: -40px; width: 520px; height: 380px; border-radius: 50%;
+      background: radial-gradient(circle at 42% 60%, rgba(206,214,232,.5), transparent 62%); }
     .deco-wave { bottom: 0; left: 0; opacity: .9; }
     .deco-right { top: 0; right: 0; height: 100%; opacity: .9; }
 
@@ -99,20 +101,28 @@
   <!-- Decorações -->
   <div class="deco deco-blob1"></div>
   <div class="deco deco-blob2"></div>
+  <div class="deco deco-blob3"></div>
   <canvas class="deco deco-canvas" id="dotsCanvas"></canvas>
-  <svg class="deco deco-wave" width="760" height="320" viewBox="0 0 760 320" fill="none" preserveAspectRatio="none">
-    <path d="M0 130 C 170 88, 340 178, 760 118" stroke="#dbe6fb" stroke-width="1.6"/>
-    <path d="M0 165 C 190 122, 360 212, 760 158" stroke="#e1ebfc" stroke-width="1.6"/>
-    <path d="M0 200 C 210 158, 400 245, 760 198" stroke="#e7effd" stroke-width="1.6"/>
-    <path d="M0 235 C 230 195, 440 272, 760 238" stroke="#ecf2fe" stroke-width="1.6"/>
-    <path d="M0 270 C 250 232, 480 298, 760 274" stroke="#f1f5fe" stroke-width="1.6"/>
+  <svg class="deco deco-wave" width="860" height="340" viewBox="0 0 860 340" fill="none" preserveAspectRatio="none">
+    <path d="M0 150 C 210 92, 440 200, 860 130 L860 340 L0 340 Z" fill="#e7eefb" opacity=".55"/>
+    <path d="M0 130 C 200 80, 430 188, 860 118" stroke="#c7d6f3" stroke-width="1.5"/>
+    <path d="M0 152 C 205 100, 435 208, 860 140" stroke="#cedcf5" stroke-width="1.5"/>
+    <path d="M0 174 C 210 122, 440 228, 860 162" stroke="#d5e1f7" stroke-width="1.5"/>
+    <path d="M0 196 C 215 144, 445 248, 860 184" stroke="#dce7f9" stroke-width="1.5"/>
+    <path d="M0 218 C 220 166, 450 268, 860 206" stroke="#e3edfb" stroke-width="1.5"/>
+    <path d="M0 240 C 225 188, 455 288, 860 228" stroke="#eaf1fc" stroke-width="1.5"/>
+    <path d="M0 262 C 230 210, 460 306, 860 250" stroke="#f0f5fe" stroke-width="1.5"/>
   </svg>
-  <svg class="deco deco-right" width="380" height="900" viewBox="0 0 380 900" preserveAspectRatio="none" fill="none">
-    <path d="M380 80 C 250 280, 250 620, 380 820" stroke="#e3ecfb" stroke-width="1.4"/>
-    <path d="M380 52 C 218 268, 218 632, 380 848" stroke="#e8f0fc" stroke-width="1.4"/>
-    <path d="M380 24 C 186 256, 186 644, 380 876" stroke="#ecf2fd" stroke-width="1.4"/>
-    <path d="M380 -4 C 154 244, 154 656, 380 904" stroke="#eff4fe" stroke-width="1.4"/>
-    <path d="M380 -32 C 122 232, 122 668, 380 932" stroke="#f2f6fe" stroke-width="1.4"/>
+  <svg class="deco deco-right" width="480" height="1000" viewBox="0 0 480 1000" preserveAspectRatio="none" fill="none">
+    <path d="M480 120 C 300 320, 300 700, 480 900" stroke="#c4d4f2" stroke-width="1.5"/>
+    <path d="M480 100 C 282 308, 282 712, 480 920" stroke="#cad8f3" stroke-width="1.5"/>
+    <path d="M480 80  C 264 296, 264 724, 480 940" stroke="#d0ddf5" stroke-width="1.5"/>
+    <path d="M480 60  C 246 284, 246 736, 480 960" stroke="#d6e1f6" stroke-width="1.5"/>
+    <path d="M480 40  C 228 272, 228 748, 480 980" stroke="#dce6f8" stroke-width="1.5"/>
+    <path d="M480 20  C 210 260, 210 760, 480 1000" stroke="#e2ebfa" stroke-width="1.5"/>
+    <path d="M480 0   C 192 248, 192 772, 480 1020" stroke="#e8effb" stroke-width="1.5"/>
+    <path d="M480 -20 C 174 236, 174 784, 480 1040" stroke="#edf2fc" stroke-width="1.5"/>
+    <path d="M480 -40 C 156 224, 156 796, 480 1060" stroke="#f1f5fd" stroke-width="1.5"/>
   </svg>
 
   <div class="wrap">
@@ -209,7 +219,7 @@
             dots.push({ hx: x, hy: y, x, y, vx: 0, vy: 0 });
           }
       }
-      const COLS = 18, ROWS = 11, ESP = 33; // mesma grade; espaçamento triplicado entre os pontos
+      const COLS = 18, ROWS = 11, ESP = 16; // mesma grade; espaçamento entre os pontos
       function gerar() {
         dots = [];
         const W = innerWidth, H = innerHeight;
