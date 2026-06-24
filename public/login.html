@@ -25,6 +25,9 @@
       background: radial-gradient(circle at 58% 42%, rgba(202,210,228,.6), transparent 62%); }
     .deco-blob3 { bottom: -60px; left: -40px; width: 520px; height: 380px; border-radius: 50%;
       background: radial-gradient(circle at 42% 60%, rgba(206,214,232,.5), transparent 62%); }
+    /* suaviza as linhas/ondas que passam atrás do texto da esquerda */
+    .deco-veil { top: 6%; left: 0; width: 52%; height: 84%;
+      background: radial-gradient(ellipse 62% 56% at 42% 50%, rgba(244,247,252,.8), rgba(244,247,252,0) 72%); }
     .deco-wave { top: 0; left: 0; width: 100%; height: 100%; opacity: .95; }
 
     /* ===== Layout ===== */
@@ -33,7 +36,7 @@
 
     /* ===== Esquerda — marca ===== */
     .marca { display: flex; align-items: center; gap: 16px; margin-bottom: 32px; }
-    .robo { width: 84px; height: 84px; object-fit: contain; flex: 0 0 auto; mix-blend-mode: multiply; }
+    .robo { width: 84px; height: 84px; object-fit: contain; flex: 0 0 auto; }
     .wordmark { line-height: 1.0; }
     .wordmark .g { font-size: 42px; font-weight: 800; color: var(--escuro); letter-spacing: -1px; display: block; }
     .wordmark .b { font-size: 42px; font-weight: 800; color: var(--azul); letter-spacing: -1px; display: block; }
@@ -44,8 +47,8 @@
     .features li { display: flex; align-items: center; gap: 14px; font-weight: 600; color: #334155; font-size: 15.5px; }
     .fic { width: 42px; height: 42px; border-radius: 12px; background: var(--azul-claro); color: var(--azul);
       display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
-    .seg { display: flex; align-items: center; gap: 13px; }
-    .seg .sic { width: 38px; height: 38px; border-radius: 11px; background: var(--azul-claro); color: var(--azul);
+    .seg { position: fixed; left: 56px; bottom: 32px; z-index: 2; display: flex; align-items: center; gap: 12px; }
+    .seg .sic { width: 40px; height: 40px; color: var(--azul);
       display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
     .seg strong { color: var(--escuro); font-size: 14.5px; display: block; font-weight: 600; }
     .seg small { font-size: 13px; color: var(--suave); }
@@ -103,6 +106,7 @@
   <div class="deco deco-blob3"></div>
   <canvas class="deco deco-canvas" id="dotsCanvas"></canvas>
   <svg class="deco deco-wave" id="waveSvg" width="100%" height="100%" viewBox="0 0 1440 900" preserveAspectRatio="none" fill="none"></svg>
+  <div class="deco deco-veil"></div>
 
   <div class="wrap">
     <!-- Esquerda -->
@@ -128,10 +132,14 @@
           <span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
           Configurações avançadas
         </li>
+        <li>
+          <span class="fic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.7 4.3L18 9l-4.3 1.7L12 15l-1.7-4.3L6 9l4.3-1.7L12 3z"/><path d="M19 13.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/></svg></span>
+          Respostas com IA
+        </li>
       </ul>
 
       <div class="seg">
-        <span class="sic"><svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1 3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg></span>
+        <span class="sic"><svg width="38" height="38" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M12 1 3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-1 14-4-4 1.4-1.4L11 12.2l4.6-4.6L17 9l-6 6z"/></svg></span>
         <div><strong>Segurança e confiabilidade</strong><small>Seus dados protegidos com alto padrão de segurança.</small></div>
       </div>
     </div>
@@ -203,7 +211,7 @@
             dots.push({ hx: x, hy: y, x, y, vx: 0, vy: 0, a });
           }
       }
-      const COLS = 18, ROWS = 11, ESP = 16; // mesma grade; espaçamento entre os pontos
+      const COLS = 26, ROWS = 15, ESP = 11; // dobro de pontos por grupo, mesmo efeito
       function gerar() {
         dots = [];
         const W = innerWidth, H = innerHeight;
@@ -258,17 +266,25 @@
       if (!svg) return;
       // Baixa e ondulada no rodapé até a metade; depois sobe até o canto superior direito.
       function onda(dy) {
-        return `M0 ${748 + dy}`
-          + ` C 70 ${720 + dy}, 100 ${700 + dy}, 130 ${705 + dy}`     // pequena crista (esquerda)
-          + ` C 175 ${712 + dy}, 210 ${762 + dy}, 248 ${759 + dy}`     // vale baixo
-          + ` C 330 ${752 + dy}, 405 ${598 + dy}, 478 ${562 + dy}`     // elevação arredondada (antes do card)
-          + ` C 560 ${524 + dy}, 642 ${592 + dy}, 722 ${606 + dy}`     // descida suave atrás do card
-          + ` C 786 ${617 + dy}, 818 ${642 + dy}, 852 ${636 + dy}`     // valezinho
-          + ` C 898 ${628 + dy}, 918 ${612 + dy}, 940 ${604 + dy}`
-          + ` C 1014 ${580 + dy}, 1046 ${430 + dy}, 1088 ${340 + dy}`  // início da subida íngreme
-          + ` C 1132 ${244 + dy}, 1164 ${214 + dy}, 1198 ${180 + dy}`
-          + ` C 1252 ${126 + dy}, 1278 ${132 + dy}, 1312 ${108 + dy}`
-          + ` C 1374 ${64 + dy}, 1414 ${38 + dy}, 1440 ${22 + dy}`;    // canto superior direito
+        // Tendência (forma geral, como o traçado): baixa na esquerda, elevação antes do
+        // card, descida atrás dele e subida íngreme até o canto superior direito.
+        const anc = [[0, 730], [250, 742], [480, 600], [720, 648], [940, 642], [1090, 486], [1240, 306], [1380, 152], [1440, 92]];
+        function trend(x) {
+          for (let i = 0; i < anc.length - 1; i++) {
+            const a = anc[i], b = anc[i + 1];
+            if (x <= b[0]) { let t = (x - a[0]) / (b[0] - a[0]); t = t * t * (3 - 2 * t); return a[1] + (b[1] - a[1]) * t; }
+          }
+          return anc[anc.length - 1][1];
+        }
+        // Ondulação uniforme (mesma amplitude/frequência) do começo ao fim.
+        let d = "";
+        const N = 160;
+        for (let i = 0; i <= N; i++) {
+          const x = (i / N) * 1440;
+          const y = trend(x) + Math.sin(x / 25) * 11 + dy;
+          d += (i === 0 ? "M" : "L") + x.toFixed(1) + " " + y.toFixed(1) + " ";
+        }
+        return d.trim();
       }
       const cores = ["#b6cbef", "#bfd2f1", "#c8d8f3", "#d1ddf5", "#dae5f7", "#e4ecfa"];
       let html = '<defs><filter id="ondaSombra" x="-5%" y="-12%" width="115%" height="132%">'
