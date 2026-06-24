@@ -266,17 +266,26 @@
       if (!svg) return;
       // Baixa e ondulada no rodapé até a metade; depois sobe até o canto superior direito.
       function onda(dy) {
-        // Pontos do traçado: colinas suaves na esquerda, vale largo atrás do card,
-        // e subida suave e íngreme até o canto superior direito.
-        const pts = [[0, 718], [250, 658], [430, 700], [585, 626], [800, 692], [1000, 664], [1075, 652], [1118, 598], [1148, 528], [1192, 500], [1262, 472], [1308, 410], [1348, 322], [1382, 268], [1414, 132], [1440, 64]]
-          .map((p) => [p[0], p[1] + dy]);
-        // Spline suave (Catmull-Rom convertido para curvas de Bézier).
-        let d = `M${pts[0][0]} ${pts[0][1]}`;
-        for (let i = 0; i < pts.length - 1; i++) {
-          const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
+        // Esquerda: colinas suaves + vale (Catmull-Rom) até x=1000.
+        const L = [[0, 718], [250, 658], [430, 700], [585, 626], [800, 692], [1000, 664]].map((p) => [p[0], p[1] + dy]);
+        let d = `M${L[0][0]} ${L[0][1]}`;
+        for (let i = 0; i < L.length - 1; i++) {
+          const p0 = L[i - 1] || L[i], p1 = L[i], p2 = L[i + 1], p3 = L[i + 2] || p2;
           const c1x = p1[0] + (p2[0] - p0[0]) / 6, c1y = p1[1] + (p2[1] - p0[1]) / 6;
           const c2x = p2[0] - (p3[0] - p1[0]) / 6, c2y = p2[1] - (p3[1] - p1[1]) / 6;
           d += ` C ${c1x.toFixed(1)} ${c1y.toFixed(1)}, ${c2x.toFixed(1)} ${c2y.toFixed(1)}, ${p2[0]} ${p2[1]}`;
+        }
+        // Direita: S perfeito (curva sigmoide, simétrica) de x=1000 até x=1440.
+        const x0 = 1000, x1 = 1440, yB = 664 + dy, yT = 116 + dy, k = 9;
+        const sig = (t) => 1 / (1 + Math.exp(-k * (t - 0.5)));
+        const s0 = sig(0), s1 = sig(1);
+        const N = 48;
+        for (let i = 1; i <= N; i++) {
+          const t = i / N;
+          const x = x0 + (x1 - x0) * t;
+          const sn = (sig(t) - s0) / (s1 - s0);
+          const y = yB + (yT - yB) * sn;
+          d += ` L ${x.toFixed(1)} ${y.toFixed(1)}`;
         }
         return d;
       }
