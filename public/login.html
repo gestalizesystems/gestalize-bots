@@ -220,17 +220,19 @@
             dots.push({ hx: x, hy: y, x, y, vx: 0, vy: 0 });
           }
       }
+      const COLS = 9, ROWS = 7, ESP = 17; // mesma grade para todos os grupos
       function gerar() {
         dots = [];
-        const W = innerWidth, H = innerHeight, e = 18;
-        grade(42, 40, 12, 9, e);                            // superior esquerdo
-        grade(42, H - 8 * e - 40, 11, 8, e);                // inferior esquerdo
-        grade(W - 11 * e - 40, H - 8 * e - 40, 11, 8, e);   // inferior direito
-        // grupo ao lado do título "Gestalize Bots"
+        const W = innerWidth, H = innerHeight;
+        const gw = COLS * ESP, gh = ROWS * ESP;
+        grade(42, 40, COLS, ROWS, ESP);               // superior esquerdo
+        grade(42, H - gh - 40, COLS, ROWS, ESP);      // inferior esquerdo
+        grade(W - gw - 40, H - gh - 40, COLS, ROWS, ESP); // inferior direito
+        // grupo ao lado do título "Gestalize Bots" (centralizado verticalmente nele)
         const wm = document.querySelector(".wordmark");
         if (wm) {
           const r = wm.getBoundingClientRect();
-          if (r.width > 0) grade(r.right + 26, r.top + 6, 5, 4, 16);
+          if (r.width > 0) grade(r.right + 26, r.top + r.height / 2 - gh / 2, COLS, ROWS, ESP);
         }
       }
       function dimensoes() {
