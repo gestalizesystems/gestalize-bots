@@ -9,7 +9,7 @@ const { Client, LocalAuth } = require("whatsapp-web.js");
 const qrcode = require("qrcode-terminal");
 
 const { triar } = require("./triage");
-const { responder } = require("./ai");
+const { responder, limparHistorico } = require("./ai");
 const { iniciarAdmin } = require("./admin");
 
 const ADMIN_PORT = process.env.ADMIN_PORT || 3000;
@@ -19,12 +19,64 @@ if (!process.env.GEMINI_API_KEY) {
   process.exit(1);
 }
 
-// Contatos com atendimento humano ativo → o bot fica em silêncio.
-// Em produção, troque por um banco/redis; aqui é em memória mesmo.
-const emAtendimentoHumano = new Set();
+// Contatos pausados (atendimento humano em andamento) → o bot fica em silêncio.
+// Em memória mesmo (some ao reiniciar o processo).
+const pausados = new Map(); // contactId -> { timer, ultimaMsg }
+const aguardandoFecho = new Map(); // contactId -> { timer } (após o "posso ajudar em algo mais?")
 
-// Quanto tempo o bot fica pausado depois de pedir atendente (ms). Padrão: 1h.
-const PAUSA_HUMANO_MS = 60 * 60 * 1000;
+const PAUSA_SILENCIO_MS = 60 * 60 * 1000; // handoff → "posso ajudar?" após 1h de silêncio do cliente
+const SEM_RESPOSTA_MS = 2 * 60 * 60 * 1000; // sem resposta ao "posso ajudar?" em 2h → finaliza
+const LIMITE_REENGAJAR_MS = 24 * 60 * 60 * 1000; // não reengaja conversas paradas há +24h
+
+// Frases curtas que indicam que o cliente encerrou ("não, obrigado", etc.).
+const FECHO_PALAVRAS = ["nao", "no", "obrigado", "obrigada", "obg", "vlw", "valeu", "era so isso", "so isso", "so isso mesmo", "era isso", "isso mesmo", "tudo certo", "ok", "blz", "beleza", "nada mais", "agradecido", "grato", "grata", "por enquanto so"];
+
+function normaliza(t) {
+  return (t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+}
+function ehFecho(t) {
+  const n = normaliza(t);
+  if (!n || n.length > 28) return false;
+  return FECHO_PALAVRAS.some((p) => n === p || n.includes(p));
+}
+
+// Inicia/reinicia a pausa: o bot some por 1h de silêncio do cliente.
+function pausar(contactId) {
+  const atual = pausados.get(contactId);
+  if (atual && atual.timer) clearTimeout(atual.timer);
+  const timer = setTimeout(() => aoSilenciar(contactId), PAUSA_SILENCIO_MS);
+  pausados.set(contactId, { timer, ultimaMsg: Date.now() });
+}
+
+// Após 1h sem mensagens do cliente: reengaja uma única vez (se dentro de 24h).
+async function aoSilenciar(contactId) {
+  const p = pausados.get(contactId);
+  pausados.delete(contactId);
+  if (!p || Date.now() - p.ultimaMsg > LIMITE_REENGAJAR_MS) return;
+  try {
+    await client.sendMessage(contactId, "Posso te ajudar em mais alguma coisa? 😊");
+    // Sem resposta em 2h → finaliza sozinho e não volta mais.
+    const timer = setTimeout(() => finalizar(contactId, true), SEM_RESPOSTA_MS);
+    aguardandoFecho.set(contactId, { timer });
+  } catch (e) {
+    console.error("Falha ao reengajar:", e.message);
+  }
+}
+
+// Encerra o atendimento: limpa estado e histórico (próximo contato = atendimento novo).
+async function finalizar(contactId, enviarDespedida) {
+  const f = aguardandoFecho.get(contactId);
+  if (f && f.timer) clearTimeout(f.timer);
+  aguardandoFecho.delete(contactId);
+  limparHistorico(contactId);
+  if (enviarDespedida) {
+    try {
+      await client.sendMessage(contactId, "Atendimento finalizado, qualquer coisa é só chamar! 🐾");
+    } catch (e) {
+      console.error("Falha ao finalizar:", e.message);
+    }
+  }
+}
 
 const client = new Client({
   authStrategy: new LocalAuth({ dataPath: ".wwebjs_auth" }),
@@ -52,15 +104,30 @@ client.on("message", async (msg) => {
 
     const contactId = msg.from;
 
-    // Se está em atendimento humano, o bot não responde.
-    if (emAtendimentoHumano.has(contactId)) return;
+    // Atendimento humano em andamento: o bot fica quieto e só reinicia o cronômetro
+    // de silêncio a cada mensagem do cliente (não interrompe a conversa).
+    if (pausados.has(contactId)) {
+      pausar(contactId);
+      return;
+    }
+
+    // Resposta ao "Posso te ajudar em mais alguma coisa?".
+    if (aguardandoFecho.has(contactId)) {
+      if (ehFecho(msg.body)) {
+        await finalizar(contactId, false);
+        await msg.reply("Atendimento finalizado, qualquer coisa é só chamar! 🐾");
+        console.log(`[finalizado] ${contactId} → cliente encerrou`);
+        return;
+      }
+      // Cliente trouxe algo novo → encerra esse ciclo e começa um atendimento novo.
+      await finalizar(contactId, false);
+    }
 
     const resultado = triar(msg.body);
 
     if (resultado.tipo === "atendente") {
-      emAtendimentoHumano.add(contactId);
-      setTimeout(() => emAtendimentoHumano.delete(contactId), PAUSA_HUMANO_MS);
       await msg.reply(resultado.resposta);
+      pausar(contactId);
       console.log(`[atendente] ${contactId} → repassado para humano`);
       return;
     }
@@ -78,10 +145,9 @@ client.on("message", async (msg) => {
     await msg.reply(r.texto);
 
     // A IA decidiu que precisa de um atendente humano → pausa o bot de verdade.
-    // (Não limpamos o histórico: a conversa fica preservada para o atendente.)
+    // (Não limpamos o histórico aqui: a conversa fica preservada para o atendente.)
     if (r.encaminhar) {
-      emAtendimentoHumano.add(contactId);
-      setTimeout(() => emAtendimentoHumano.delete(contactId), PAUSA_HUMANO_MS);
+      pausar(contactId);
       console.log(`[ia→atendente] ${contactId}: ${r.motivo || "(sem motivo)"}`);
     } else {
       console.log(`[ia] ${contactId}: "${msg.body.slice(0, 60)}"`);
