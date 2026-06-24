@@ -12,7 +12,7 @@ const { triar } = require("./triage");
 const { responder, limparHistorico } = require("./ai");
 const { iniciarAdmin } = require("./admin");
 
-const ADMIN_PORT = process.env.ADMIN_PORT || 3000;
+const ADMIN_PORT = process.env.PORT || process.env.ADMIN_PORT || 4500;
 
 if (!process.env.GEMINI_API_KEY) {
   console.error("❌ Falta a variável GEMINI_API_KEY. Copie .env.example para .env e preencha a chave gratuita do Google (https://aistudio.google.com/apikey).");

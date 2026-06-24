@@ -15,6 +15,14 @@ const UPLOAD_DIR = path.join(PUBLIC_DIR, "uploads");
 const sessoes = new Map();
 const SESSAO_MS = 7 * 24 * 60 * 60 * 1000; // 7 dias
 
+// Proteção contra força-bruta no login: tentativas por IP.
+const tentativas = new Map(); // ip -> { fails, lockUntil }
+const MAX_TENTATIVAS = 5;
+const BLOQUEIO_MS = 15 * 60 * 1000; // bloqueia por 15 min após exceder
+function ipDe(req) {
+  return (req.headers["x-forwarded-for"] || "").split(",")[0].trim() || req.ip || (req.socket && req.socket.remoteAddress) || "?";
+}
+
 function parseCookies(req) {
   const out = {};
   (req.headers.cookie || "").split(";").forEach((p) => {
@@ -58,6 +66,7 @@ function validar(c) {
 
 function iniciarAdmin(porta) {
   const app = express();
+  app.set("trust proxy", 1); // atrás do proxy do Railway: respeita x-forwarded-for/proto
   app.use(express.json({ limit: "8mb" }));
 
   // A logo e a imagem do robô são públicas (aparecem na tela de login).
@@ -71,13 +80,25 @@ function iniciarAdmin(porta) {
   });
 
   app.post("/api/login", (req, res) => {
+    const ip = ipDe(req);
+    const reg = tentativas.get(ip);
+    if (reg && reg.lockUntil && reg.lockUntil > Date.now()) {
+      const min = Math.ceil((reg.lockUntil - Date.now()) / 60000);
+      return res.status(429).json({ ok: false, erro: `Muitas tentativas. Tente novamente em ${min} min.` });
+    }
     const { email, senha } = req.body || {};
     if (conta.verifica(email || "", senha || "")) {
+      tentativas.delete(ip);
       const sid = crypto.randomBytes(24).toString("hex");
       sessoes.set(sid, Date.now() + SESSAO_MS);
-      res.setHeader("Set-Cookie", `sid=${sid}; HttpOnly; Path=/; SameSite=Lax; Max-Age=${SESSAO_MS / 1000}`);
+      const secure = req.secure ? "; Secure" : ""; // só em HTTPS (Railway); não quebra o localhost
+      res.setHeader("Set-Cookie", `sid=${sid}; HttpOnly; Path=/; SameSite=Lax${secure}; Max-Age=${SESSAO_MS / 1000}`);
       return res.json({ ok: true });
     }
+    const r = reg || { fails: 0, lockUntil: 0 };
+    r.fails += 1;
+    if (r.fails >= MAX_TENTATIVAS) { r.lockUntil = Date.now() + BLOQUEIO_MS; r.fails = 0; }
+    tentativas.set(ip, r);
     res.status(401).json({ ok: false, erro: "E-mail ou senha incorretos." });
   });
 
@@ -196,7 +217,9 @@ function iniciarAdmin(porta) {
   });
 
   return new Promise((resolve) => {
-    const server = app.listen(porta, "127.0.0.1", () => {
+    // No Railway (PORT definido) escuta em 0.0.0.0; localmente fica só em 127.0.0.1.
+    const host = process.env.PORT ? "0.0.0.0" : "127.0.0.1";
+    const server = app.listen(porta, host, () => {
       console.log(`🛠️  Painel de administração: http://localhost:${porta}`);
       resolve(server);
     });
