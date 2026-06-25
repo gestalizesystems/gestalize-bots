@@ -71,12 +71,12 @@
     .bt-badge.on { background: rgba(34,197,94,.22); color: #4ade80; }
     .bt-badge.off { background: rgba(255,255,255,.16); color: #cbd5e1; }
     .bt-conn { font-size: 12px; opacity: .85; margin-top: 9px; display: flex; align-items: center; gap: 6px; }
-    .switch { position: relative; width: 44px; height: 24px; flex: 0 0 auto; cursor: pointer; display: inline-block; }
-    .switch input { opacity: 0; width: 0; height: 0; }
-    .switch .sl { position: absolute; inset: 0; background: rgba(255,255,255,.3); border-radius: 24px; transition: .2s; }
-    .switch .sl::before { content: ""; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: .2s; }
-    .switch input:checked + .sl { background: #22c55e; }
-    .switch input:checked + .sl::before { transform: translateX(20px); }
+    .toggle-sw { position: relative; width: 44px; height: 24px; flex: 0 0 auto; cursor: pointer; display: inline-block; }
+    .toggle-sw input { opacity: 0; width: 0; height: 0; }
+    .toggle-sw .sl { position: absolute; inset: 0; background: rgba(255,255,255,.3); border-radius: 24px; transition: .2s; }
+    .toggle-sw .sl::before { content: ""; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: .2s; }
+    .toggle-sw input:checked + .sl { background: #22c55e; }
+    .toggle-sw input:checked + .sl::before { transform: translateX(20px); }
 
     /* ===== Main ===== */
     .main { margin-left: 250px; flex: 1; min-width: 0; display: flex; flex-direction: column; }
@@ -287,7 +287,7 @@
       <div class="bot-toggle">
         <div class="bt-head">
           <span class="bt-title">Bot do WhatsApp</span>
-          <label class="switch"><input type="checkbox" id="botChk" onchange="toggleBot()" /><span class="sl"></span></label>
+          <label class="toggle-sw"><input type="checkbox" id="botChk" onchange="toggleBot()" /><span class="sl"></span></label>
         </div>
         <span class="bt-badge off" id="botBadge">○ Inativo</span>
         <div class="bt-conn" id="botConn">⚪ Bot desligado</div>
@@ -394,7 +394,6 @@
             <h2>💬 Mensagens</h2>
             <p class="dica">Use <code>*texto*</code> para <b>negrito</b> no WhatsApp e Enter para pular linha.</p>
             <label>Saudação — linha 1</label><textarea id="m_saudacaoIntro"></textarea>
-            <label>Saudação — chamada (acima do menu)</label><textarea id="m_saudacaoChamada"></textarea>
             <label>Saudação — rodapé</label><textarea id="m_saudacaoRodape"></textarea>
             <label>Resposta ao pedir atendente humano</label><textarea id="m_atendente"></textarea>
 
@@ -410,22 +409,22 @@
               <div class="exp-linha"><span>Domingo</span><input type="time" id="exp_domingo_abre" /><span>às</span><input type="time" id="exp_domingo_fecha" /></div>
             </div>
             <p class="dica">Deixe um dia <b>em branco</b> = <b>fechado</b> (ex.: domingo).</p>
-
-            <h3 style="margin:22px 0 4px; font-size:14px; color:var(--navy);">✨ Mensagens personalizadas</h3>
-            <p class="dica">Mensagens extras que o bot envia quando o cliente usa as palavras-chave indicadas (não aparecem no menu numerado).</p>
-            <div id="lista_msgs"></div>
-            <button class="add" onclick="addMsg()">+ Adicionar mensagem</button>
           </section>
 
           <section class="card page" id="page-opcoes">
             <div class="card-head"><h2>🗂️ Menus</h2></div>
-            <p class="dica"><b>Menu de saudação</b> (abaixo) é enviado junto com a saudação. Cada item vira uma opção numerada (1, 2, 3...). Mais abaixo ficam os <b>sub-menus</b> por palavra-chave.</p>
+
+            <h3 style="margin:6px 0 2px; font-size:16px; color:var(--navy)">📣 Menu de saudação</h3>
+            <p class="dica">Enviado junto com a saudação. As opções respondem pelo <b>número</b> ou pela <b>palavra-chave</b>.</p>
+            <label>Texto de introdução (acima das opções)</label>
+            <textarea id="m_saudacaoChamada"></textarea>
+            <label style="margin-top:8px">Opções numeradas</label>
             <div id="lista_servicos"></div>
             <button class="add" onclick="addServico()">+ Adicionar opção</button>
 
             <hr style="border:none;border-top:1px solid var(--borda);margin:26px 0 18px" />
-            <div class="card-head"><h2 style="font-size:18px">🗂️ Menus extras (sub-menus)</h2></div>
-            <p class="dica">Crie menus próprios abertos por palavra-chave (ex.: “carrapaticida” abre o menu de carrapaticidas). Cada menu tem suas opções numeradas, e o cliente escolhe pelo número.</p>
+            <h3 style="margin:0 0 2px; font-size:16px; color:var(--navy)">🗂️ Sub-menus (abertos por palavra-chave)</h3>
+            <p class="dica">Menus próprios abertos por palavra-chave (ex.: “carrapaticida” abre o menu de carrapaticidas). O cliente escolhe pelo número.</p>
             <div id="lista_menus"></div>
             <button class="add" onclick="addMenu()">+ Adicionar menu</button>
           </section>
@@ -532,6 +531,12 @@
           <label style="margin-top:18px">👋 Abrir o menu / saudação</label>
           <div class="tax-add"><input type="text" id="novoGatSaudacao" placeholder="Ex.: oi, menu, ajuda..." onkeydown="if(event.key==='Enter'){event.preventDefault();addGatilho('saudacao')}" /><button class="btn-primary" type="button" onclick="addGatilho('saudacao')">Adicionar</button></div>
           <div class="tax-lista" id="listaGatSaudacao"></div>
+
+          <hr style="border:none;border-top:1px solid var(--borda);margin:24px 0 16px" />
+          <h3 style="margin:0 0 2px; font-size:16px; color:var(--navy)">📌 Comandos personalizados</h3>
+          <p class="dica">Crie seus próprios comandos: o cliente digita uma palavra-chave e recebe a resposta que você definir.</p>
+          <div id="lista_msgs"></div>
+          <button class="add" onclick="addMsg()">+ Adicionar novo comando</button>
         </section>
 
         <section class="card page" id="page-conta">
