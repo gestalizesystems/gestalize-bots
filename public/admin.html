@@ -250,6 +250,10 @@
     .cp-item:hover { background: #f8fafc; }
     .cp-sep { height: 1px; background: var(--borda); margin: 6px 4px; }
     .cp-sair { color: #dc2626; }
+    .exp-grid { margin: 4px 0 2px; }
+    .exp-linha { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .exp-linha > span:first-child { width: 84px; font-weight: 600; font-size: 14px; }
+    .exp-linha input[type=time] { padding: 8px 10px; border: 1px solid var(--borda); border-radius: 9px; font-size: 14px; font-family: inherit; }
   </style>
 </head>
 <body>
@@ -272,7 +276,7 @@
         <a class="nav-item active" data-target="page-dashboard" data-titulo="Dashboard" data-sub="Resumo do seu atendimento automatizado."><span class="ic">📊</span> Dashboard</a>
         <a class="nav-item" data-target="page-negocio" data-titulo="Dados do negócio" data-sub="Informações que aparecem nas respostas do bot."><span class="ic">🏪</span> Dados do negócio</a>
         <a class="nav-item" data-target="page-mensagens" data-titulo="Mensagens" data-sub="Personalize as mensagens que o bot envia."><span class="ic">💬</span> Mensagens</a>
-        <a class="nav-item" data-target="page-opcoes" data-titulo="Menu de saudação" data-sub="Opções enviadas junto com a mensagem de saudação."><span class="ic">👋</span> Menu de saudação</a>
+        <a class="nav-item" data-target="page-opcoes" data-titulo="Menus" data-sub="Menu de saudação (enviado com a saudação) e sub-menus por palavra-chave."><span class="ic">🗂️</span> Menus</a>
         <a class="nav-item" data-target="page-faq" data-titulo="Respostas rápidas (FAQ)" data-sub="Respostas para dúvidas comuns dos clientes."><span class="ic">❓</span> Respostas rápidas</a>
         <a class="nav-item" data-target="page-entrega" data-titulo="Taxas e serviços" data-sub="Entrega e Táxi Dog, com cálculo por distância."><span class="ic">🛵</span> Taxas e serviços</a>
         <a class="nav-item" data-target="page-catalogo" data-titulo="Catálogo" data-sub="Produtos, grupos e subgrupos que o bot envia aos clientes."><span class="ic">🛍️</span> Catálogo</a>
@@ -394,6 +398,19 @@
             <label>Saudação — rodapé</label><textarea id="m_saudacaoRodape"></textarea>
             <label>Resposta ao pedir atendente humano</label><textarea id="m_atendente"></textarea>
 
+            <hr style="border:none;border-top:1px solid var(--borda);margin:22px 0 16px" />
+            <h3 style="margin:0 0 4px; font-size:14px; color:var(--navy);">🌙 Mensagem de ausência (fora do horário)</h3>
+            <p class="dica">Fora do horário, o bot <b>não</b> envia menu/saudação — só esta mensagem. Ao abrir, volta ao normal sozinho.</p>
+            <label class="switch-l" style="margin-top:6px"><input type="checkbox" id="exp_ativo" /> Ativar mensagem de ausência fora do horário</label>
+            <label>Mensagem de ausência</label><textarea id="m_ausencia"></textarea>
+            <label>Horário de atendimento do bot</label>
+            <div class="exp-grid">
+              <div class="exp-linha"><span>Seg–Sex</span><input type="time" id="exp_semana_abre" /><span>às</span><input type="time" id="exp_semana_fecha" /></div>
+              <div class="exp-linha"><span>Sábado</span><input type="time" id="exp_sabado_abre" /><span>às</span><input type="time" id="exp_sabado_fecha" /></div>
+              <div class="exp-linha"><span>Domingo</span><input type="time" id="exp_domingo_abre" /><span>às</span><input type="time" id="exp_domingo_fecha" /></div>
+            </div>
+            <p class="dica">Deixe um dia <b>em branco</b> = <b>fechado</b> (ex.: domingo).</p>
+
             <h3 style="margin:22px 0 4px; font-size:14px; color:var(--navy);">✨ Mensagens personalizadas</h3>
             <p class="dica">Mensagens extras que o bot envia quando o cliente usa as palavras-chave indicadas (não aparecem no menu numerado).</p>
             <div id="lista_msgs"></div>
@@ -401,8 +418,8 @@
           </section>
 
           <section class="card page" id="page-opcoes">
-            <div class="card-head"><h2>👋 Menu de saudação</h2></div>
-            <p class="dica">Estas opções são enviadas <b>junto com a mensagem de saudação</b> (o texto da saudação fica em <b>Mensagens</b>). Cada item vira uma opção numerada (1, 2, 3...). <b>Palavras-chave</b> separadas por vírgula.</p>
+            <div class="card-head"><h2>🗂️ Menus</h2></div>
+            <p class="dica"><b>Menu de saudação</b> (abaixo) é enviado junto com a saudação. Cada item vira uma opção numerada (1, 2, 3...). Mais abaixo ficam os <b>sub-menus</b> por palavra-chave.</p>
             <div id="lista_servicos"></div>
             <button class="add" onclick="addServico()">+ Adicionar opção</button>
 
@@ -753,7 +770,15 @@
       ["nome","tipo","endereco","telefone","horarioSemana","horarioSabado","horarioDomingo","pagamento"]
         .forEach(k => el("n_" + k).value = n[k] || "");
       el("n_infoIA").value = cfg.infoIA || "";
-      ["saudacaoIntro","saudacaoChamada","saudacaoRodape","atendente"].forEach(k => el("m_" + k).value = m[k] || "");
+      ["saudacaoIntro","saudacaoChamada","saudacaoRodape","atendente","ausencia"].forEach(k => el("m_" + k).value = m[k] || "");
+      if (!el("m_ausencia").value) el("m_ausencia").value = "🌙 Olá! No momento estamos fora do horário de atendimento. Assim que abrirmos, te respondemos por aqui. 🐾";
+      const padraoExp = { semana: { abre: "08:00", fecha: "19:00" }, sabado: { abre: "08:00", fecha: "18:00" }, domingo: { abre: "", fecha: "" } };
+      el("exp_ativo").checked = cfg.expediente ? cfg.expediente.ativo === true : false;
+      ["semana","sabado","domingo"].forEach(d => {
+        const fonte = (cfg.expediente && cfg.expediente[d]) ? cfg.expediente[d] : padraoExp[d];
+        el("exp_" + d + "_abre").value = (fonte && fonte.abre) || "";
+        el("exp_" + d + "_fecha").value = (fonte && fonte.fecha) || "";
+      });
       (cfg.mensagensExtras || []).forEach(x => el("lista_msgs").appendChild(itemHtml("mx", x)));
       cfg.servicos.forEach(s => el("lista_servicos").appendChild(itemHtml("sv", s)));
       cfg.faqRapido.forEach(f => el("lista_faq").appendChild(itemHtml("fq", f)));
@@ -796,7 +821,14 @@
       ["nome","tipo","endereco","telefone","horarioSemana","horarioSabado","horarioDomingo","pagamento"]
         .forEach(k => novo.negocio[k] = el("n_" + k).value.trim());
       novo.negocio.logo = logoAtual;
-      ["saudacaoIntro","saudacaoChamada","saudacaoRodape","atendente"].forEach(k => novo.mensagens[k] = el("m_" + k).value);
+      ["saudacaoIntro","saudacaoChamada","saudacaoRodape","atendente","ausencia"].forEach(k => novo.mensagens[k] = el("m_" + k).value);
+      novo.expediente = {
+        ativo: el("exp_ativo").checked,
+        timezone: (cfg.expediente && cfg.expediente.timezone) || "America/Fortaleza",
+        semana: { abre: el("exp_semana_abre").value, fecha: el("exp_semana_fecha").value },
+        sabado: { abre: el("exp_sabado_abre").value, fecha: el("exp_sabado_fecha").value },
+        domingo: { abre: el("exp_domingo_abre").value, fecha: el("exp_domingo_fecha").value },
+      };
 
       // Se o endereço de partida mudou, zera as coordenadas para recalcular.
       if ((origemAtual.endereco || "") !== novo.entrega.origem.endereco) { novo.entrega.origem.lat = undefined; novo.entrega.origem.lon = undefined; }

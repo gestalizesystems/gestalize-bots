@@ -74,6 +74,7 @@ function validar(c) {
   if (!Array.isArray(c.menus)) c.menus = [];
   if (typeof c.infoIA !== "string") c.infoIA = "";
   if (typeof c.botAtivo !== "boolean") c.botAtivo = config.get().botAtivo === true; // preserva o liga/desliga
+  if (!c.expediente || typeof c.expediente !== "object") c.expediente = config.get().expediente || { ativo: false }; // horário/ausência
   // Preserva o catálogo quando o "Salvar tudo" não o envia (ele tem endpoint próprio).
   if (!c.catalogo || typeof c.catalogo !== "object") {
     c.catalogo = config.get().catalogo || { grupos: [], subgrupos: [], especificacoes: [], produtos: [] };

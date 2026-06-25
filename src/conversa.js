@@ -14,6 +14,8 @@ function configurar(fn) {
 const pausados = new Map(); // contactId -> { timer, ultimaMsg }
 const aguardandoFecho = new Map(); // contactId -> { timer }
 const menuContexto = new Map(); // contactId -> opções do menu atual
+const ausenciaEnviada = new Map(); // contactId -> instante do último aviso de ausência
+const AUSENCIA_THROTTLE_MS = 60 * 60 * 1000; // não repete a ausência mais de 1x/h por contato
 
 const PAUSA_SILENCIO_MS = 60 * 60 * 1000; // 1h de silêncio do cliente → "posso ajudar?"
 const SEM_RESPOSTA_MS = 2 * 60 * 60 * 1000; // sem resposta em 2h → finaliza
@@ -28,6 +30,31 @@ function ehFecho(t) {
   const n = normaliza(t);
   if (!n || n.length > 28) return false;
   return FECHO_PALAVRAS.some((p) => n === p || n.includes(p));
+}
+
+// Verdadeiro se, AGORA, a loja está fora do horário de atendimento do bot.
+function foraDoHorario(dados) {
+  const exp = dados.expediente;
+  if (!exp || !exp.ativo) return false; // recurso desligado → sempre atende
+  const tz = exp.timezone || "America/Fortaleza";
+  let wd, hh, mm;
+  try {
+    const partes = new Intl.DateTimeFormat("en-US", {
+      timeZone: tz, weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+    }).formatToParts(new Date());
+    wd = partes.find((p) => p.type === "weekday").value;
+    hh = +partes.find((p) => p.type === "hour").value;
+    mm = +partes.find((p) => p.type === "minute").value;
+  } catch (_) {
+    return false; // em caso de erro de fuso, não bloqueia o atendimento
+  }
+  const agora = hh * 60 + mm;
+  const faixa = wd === "Sun" ? exp.domingo : wd === "Sat" ? exp.sabado : exp.semana;
+  if (!faixa || !faixa.abre || !faixa.fecha) return true; // dia fechado
+  const [ah, am] = String(faixa.abre).split(":").map(Number);
+  const [fh, fm] = String(faixa.fecha).split(":").map(Number);
+  const abre = ah * 60 + am, fecha = fh * 60 + fm;
+  return !(agora >= abre && agora < fecha);
 }
 
 function pausar(contactId) {
@@ -67,8 +94,23 @@ async function finalizar(contactId, enviarDespedida) {
 
 // Processa uma mensagem recebida do cliente.
 async function processar(from, texto) {
+  const dados = config.get();
   // Bot desligado no painel → não responde nada.
-  if (!config.get().botAtivo) return;
+  if (!dados.botAtivo) return;
+
+  // Fora do horário → só a mensagem de ausência (sem menu/saudação/IA), no máximo 1x/h.
+  if (foraDoHorario(dados)) {
+    const ultimo = ausenciaEnviada.get(from) || 0;
+    if (Date.now() - ultimo > AUSENCIA_THROTTLE_MS) {
+      ausenciaEnviada.set(from, Date.now());
+      try {
+        await enviar(from, config.preencher(dados.mensagens.ausencia || "No momento estamos fora do horário de atendimento. Retornamos no horário comercial. 🐾"));
+      } catch (e) {
+        console.error("Falha ao enviar ausência:", e.message);
+      }
+    }
+    return;
+  }
 
   // Atendimento humano em andamento: fica quieto e reinicia o cronômetro de silêncio.
   if (pausados.has(from)) {

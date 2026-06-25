@@ -14,7 +14,8 @@
     "saudacaoIntro": "Olá! 🐾 Aqui é o atendimento da *{nome}* ({tipo}).",
     "saudacaoChamada": "Como posso ajudar? Digite o *número* de uma opção ou escreva sua dúvida:",
     "saudacaoRodape": "Para falar com um atendente humano, digite *atendente*.",
-    "atendente": "Combinado! 🙋 Vou chamar um atendente humano. Aguarde um momento que já te respondemos por aqui. (Enquanto isso, o atendimento automático está pausado para você.)"
+    "atendente": "Combinado! 🙋 Vou chamar um atendente humano. Aguarde um momento que já te respondemos por aqui. (Enquanto isso, o atendimento automático está pausado para você.)",
+    "ausencia": "🌙 Olá! No momento estamos *fora do horário de atendimento*.\n\nNosso horário:\n• {horarioSemana}\n• {horarioSabado}\n• {horarioDomingo}\n\nAssim que abrirmos, te respondemos por aqui. 🐾"
   },
   "mensagensExtras": [],
   "servicos": [
@@ -281,5 +282,21 @@
       ]
     }
   ],
-  "botAtivo": false
+  "botAtivo": false,
+  "expediente": {
+    "ativo": true,
+    "timezone": "America/Fortaleza",
+    "semana": {
+      "abre": "08:00",
+      "fecha": "19:00"
+    },
+    "sabado": {
+      "abre": "08:00",
+      "fecha": "18:00"
+    },
+    "domingo": {
+      "abre": "",
+      "fecha": ""
+    }
+  }
 }
