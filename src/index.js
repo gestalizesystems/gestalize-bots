@@ -1,7 +1,6 @@
 // Bot da Lecoland — WhatsApp Cloud API (oficial da Meta).
 // 1) Sobe o servidor (painel + webhook) — a Meta envia as mensagens pro /webhook.
 // 2) Triagem por palavra-chave / menus; perguntas livres caem na IA (Gemini).
-// Para rodar com o número de TESTE via QR code (whatsapp-web.js), use: npm run start:webjs
 
 require("dotenv").config();
 

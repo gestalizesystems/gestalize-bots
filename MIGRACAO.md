@@ -4,8 +4,6 @@ O bot usa a **WhatsApp Cloud API** oficial da Meta. Já está **implementado**:
 `npm start` sobe o servidor (painel + webhook). Falta só **configurar a Meta** e preencher
 as variáveis. O envio sai por `src/wa.js`; o recebimento entra pelo `POST /webhook` (em `src/admin.js`).
 
-> Existe também um modo de teste rápido por QR code (não-oficial): `npm run start:webjs`.
-
 ---
 
 ## 1. Criar o app na Meta

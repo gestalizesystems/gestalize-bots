@@ -1,5 +1,5 @@
-// Lógica de conversa do bot, independente do transporte (Cloud API ou whatsapp-web.js).
-// O envio de mensagens é injetado via configurar(fn), onde fn(para, texto) entrega a mensagem.
+// Lógica de conversa do bot (triagem, menus, IA, handoff), separada do transporte de mensagens.
+// O envio é injetado via configurar(fn), onde fn(para, texto) entrega a mensagem (Cloud API).
 
 const { triar } = require("./triage");
 const { responder, limparHistorico } = require("./ai");

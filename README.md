@@ -50,7 +50,7 @@ node test-triagem.js
 npm start
 ```
 - O painel abre em **http://localhost:4500** (faça login com ADMIN_EMAIL / ADMIN_SENHA).
-- Para um teste rápido via QR code (número de teste, não-oficial), existe `npm run start:webjs`.
+- O bot só responde de verdade depois do **deploy + webhook** (precisa de URL pública). Localmente, dá pra editar tudo no painel e testar a triagem com `node test-triagem.js`.
 
 ## Configurar o WhatsApp Cloud API (passo a passo)
 O guia detalhado com prints/etapas está em **MIGRACAO.md**. Em resumo:
@@ -104,8 +104,7 @@ src/
   admin.js        → servidor do painel + webhook do WhatsApp
   conta.js        → conta de acesso ao painel (e-mail + senha com hash)
   estado.js       → estado de runtime (conexão)
-  index.js        → entrada (Cloud API): sobe painel + webhook
-  index-webjs.js  → entrada alternativa por QR code (teste rápido)
+  index.js        → entrada: sobe painel + webhook (Cloud API)
   painel-only.js  → abre só o painel (npm run painel)
 public/
   admin.html      → painel  ·  login.html → tela de login
