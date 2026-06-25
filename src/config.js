@@ -16,8 +16,34 @@ function carregar() {
     fs.mkdirSync(DIR, { recursive: true });
     fs.copyFileSync(SEMENTE, CAMINHO); // 1ª vez no Volume: semeia a partir do repo
   }
-  const bruto = fs.readFileSync(CAMINHO, "utf8");
-  return JSON.parse(bruto);
+  const d = JSON.parse(fs.readFileSync(CAMINHO, "utf8"));
+  if (migrar(d)) fs.writeFileSync(CAMINHO, JSON.stringify(d, null, 2), "utf8");
+  return d;
+}
+
+// Migrações pontuais aplicadas ao config persistido (ex.: no Volume do Railway).
+function migrar(d) {
+  let mudou = false;
+  if (d.entrega && !d.entrega.gratis) { d.entrega.gratis = { km: "2", valor: "50" }; mudou = true; }
+  if (!d._entregaSubmenu) {
+    if (d.entrega) d.entrega.ativo = false; // entrega vira sub-menu (sai do menu principal)
+    if (!Array.isArray(d.menus)) d.menus = [];
+    if (!d.menus.some((m) => m.id === "entrega")) {
+      d.menus.push({
+        id: "entrega",
+        nome: "Entrega / Táxi Dog",
+        gatilhos: ["entrega", "delivery", "frete", "taxa", "taxa de entrega", "taxi dog", "taxidog", "leva e traz", "buscar", "buscam", "entregam"],
+        intro: "🛵 *Entrega / Táxi Dog* — qual serviço você quer?",
+        opcoes: [
+          { titulo: "Entrega (moto)", resposta: "Beleza! 🛵 Me diga seu *endereço completo* (rua, número e bairro) que eu calculo o valor da entrega. 🐾" },
+          { titulo: "Táxi Dog moto (ida e volta)", resposta: "Show! 🐕 Me diga seu *endereço completo* que eu calculo o valor do táxi dog (moto). 🐾" },
+          { titulo: "Táxi Dog carro (ida e volta)", resposta: "Combinado! 🚗 Me diga seu *endereço completo* que eu calculo o valor do táxi dog (carro). 🐾" },
+        ],
+      });
+    }
+    d._entregaSubmenu = true; mudou = true;
+  }
+  return mudou;
 }
 
 // Retorna os dados atuais em memória.

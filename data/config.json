@@ -89,7 +89,7 @@
     }
   ],
   "entrega": {
-    "ativo": true,
+    "ativo": false,
     "titulo": "Entrega / Táxi Dog",
     "gatilhos": [
       "entrega",
@@ -184,7 +184,11 @@
         "valor": "20,00",
         "obs": ""
       }
-    ]
+    ],
+    "gratis": {
+      "km": "2",
+      "valor": "50"
+    }
   },
   "gatilhosAtendente": [
     "atendente",
@@ -280,6 +284,38 @@
           "resposta": "💊 *Bravecto 365 dias*\n\nTemos sim! O valor varia conforme o *peso do pet*. Me diga o peso do seu pet que eu confirmo a dose certa e o valor. 🐾"
         }
       ]
+    },
+    {
+      "id": "entrega",
+      "nome": "Entrega / Táxi Dog",
+      "gatilhos": [
+        "entrega",
+        "delivery",
+        "frete",
+        "taxa",
+        "taxa de entrega",
+        "taxi dog",
+        "taxidog",
+        "leva e traz",
+        "buscar",
+        "buscam",
+        "entregam"
+      ],
+      "intro": "🛵 *Entrega / Táxi Dog* — qual serviço você quer?",
+      "opcoes": [
+        {
+          "titulo": "Entrega (moto)",
+          "resposta": "Beleza! 🛵 Me diga seu *endereço completo* (rua, número e bairro) que eu calculo o valor da entrega. 🐾"
+        },
+        {
+          "titulo": "Táxi Dog moto (ida e volta)",
+          "resposta": "Show! 🐕 Me diga seu *endereço completo* que eu calculo o valor do táxi dog (moto). 🐾"
+        },
+        {
+          "titulo": "Táxi Dog carro (ida e volta)",
+          "resposta": "Combinado! 🚗 Me diga seu *endereço completo* que eu calculo o valor do táxi dog (carro). 🐾"
+        }
+      ]
     }
   ],
   "botAtivo": false,
@@ -298,5 +334,6 @@
       "abre": "",
       "fecha": ""
     }
-  }
+  },
+  "_entregaSubmenu": true
 }

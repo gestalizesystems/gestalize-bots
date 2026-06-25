@@ -412,9 +412,7 @@
           </section>
 
           <section class="card page" id="page-opcoes">
-            <div class="card-head"><h2>🗂️ Menus</h2></div>
-
-            <h3 style="margin:6px 0 2px; font-size:16px; color:var(--navy)">📣 Menu de saudação</h3>
+            <h3 style="margin:2px 0 2px; font-size:16px; color:var(--navy)">📣 Menu de saudação</h3>
             <p class="dica">Enviado junto com a saudação. As opções respondem pelo <b>número</b> ou pela <b>palavra-chave</b>.</p>
             <label>Texto de introdução (acima das opções)</label>
             <textarea id="m_saudacaoChamada"></textarea>
@@ -438,14 +436,7 @@
 
         <section class="card page" id="page-entrega">
           <h2>🛵 Taxas e serviços (Entrega / Táxi Dog)</h2>
-          <p class="dica">O bot calcula o valor pela distância. Edite serviços, faixas de km e o endereço de partida.</p>
-          <label class="switch"><input type="checkbox" id="e_ativo" /> Mostrar opção de entrega no menu</label>
-          <div class="grid-2">
-            <div><label>Título no menu</label><input type="text" id="e_titulo" /></div>
-            <div><label>Palavras-chave (separadas por vírgula)</label><input type="text" id="e_gatilhos" /></div>
-          </div>
-          <label>Texto de introdução</label><textarea id="e_intro"></textarea>
-          <label>Rodapé (opcional)</label><textarea id="e_rodape"></textarea>
+          <p class="dica">Só os <b>dados</b> do cálculo: endereço de partida, faixas de km e valores. O <b>menu</b> e os <b>textos</b> da entrega você cria em <b>Menus</b>.</p>
           <label>📍 Endereço de partida (a loja)</label>
           <p class="dica">Usado para medir a distância até o endereço do cliente. Coloque o endereço completo e real (rua, número, bairro, cidade - UF).</p>
           <input type="text" id="e_origem" />
@@ -458,6 +449,11 @@
           </datalist>
           <div id="lista_taxas"></div>
           <button class="add" onclick="addTaxa()">+ Adicionar taxa</button>
+
+          <hr style="border:none;border-top:1px solid var(--borda);margin:22px 0 14px" />
+          <h3 style="margin:0 0 2px; font-size:15px; color:var(--navy)">🎁 Entrega grátis</h3>
+          <p class="dica">Até X km, pedidos acima de R$ Y não pagam entrega. (Deixe em branco para não usar.)</p>
+          <div class="exp-linha">Até <input type="text" id="e_gratis_km" style="width:64px" placeholder="2" /> km, pedido acima de R$ <input type="text" id="e_gratis_valor" style="width:80px" placeholder="50" /> → grátis</div>
         </section>
 
         <div class="page" id="page-catalogo">
@@ -792,12 +788,9 @@
       cfg.servicos.forEach(s => el("lista_servicos").appendChild(itemHtml("sv", s)));
       cfg.faqRapido.forEach(f => el("lista_faq").appendChild(itemHtml("fq", f)));
       (cfg.menus || []).forEach(m => el("lista_menus").appendChild(menuHtml(m)));
-      el("e_ativo").checked = !!e.ativo;
-      el("e_titulo").value = e.titulo || "";
-      el("e_gatilhos").value = listaParaTexto(e.gatilhos);
-      el("e_intro").value = e.intro || "";
-      el("e_rodape").value = e.rodape || "";
       el("e_origem").value = (e.origem && e.origem.endereco) || "";
+      el("e_gratis_km").value = (e.gratis && e.gratis.km) || "";
+      el("e_gratis_valor").value = (e.gratis && e.gratis.valor) || "";
       (e.taxas || []).forEach(t => el("lista_taxas").appendChild(taxaHtml(t)));
       gatilhos.atendente = (cfg.gatilhosAtendente || []).slice();
       gatilhos.saudacao = (cfg.gatilhosSaudacao || []).slice();
@@ -815,13 +808,10 @@
         servicos: coletarItens("lista_servicos", "sv"),
         faqRapido: coletarItens("lista_faq", "fq"),
         entrega: {
-          ativo: el("e_ativo").checked,
-          titulo: el("e_titulo").value.trim(),
-          gatilhos: textoParaLista(el("e_gatilhos").value),
-          intro: el("e_intro").value,
-          rodape: el("e_rodape").value,
+          ...cfg.entrega,
           origem: { endereco: el("e_origem").value.trim(), lat: origemAtual.lat, lon: origemAtual.lon },
           taxas: coletarTaxas(),
+          gratis: { km: el("e_gratis_km").value.trim(), valor: el("e_gratis_valor").value.trim() },
         },
         gatilhosAtendente: gatilhos.atendente,
         gatilhosSaudacao: gatilhos.saudacao,

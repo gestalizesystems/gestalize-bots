@@ -65,6 +65,7 @@ async function executarFuncao(nome, args) {
 function montarContexto() {
   const dados = config.get();
   const n = dados.negocio;
+  const g = (dados.entrega && dados.entrega.gratis) || {}; // regra de entrega grátis
 
   const extras = (dados.mensagensExtras || [])
     .map((x) => `- ${x.titulo}: ${(x.resposta || "").replace(/\n+/g, " ").replace(/\*/g, "")}`)
@@ -99,10 +100,18 @@ function montarContexto() {
     "- Quando precisar de um atendente humano (exames com guia, remédio com nome/receita/foto, fechar valor de pacote de cliente frequente, venda de aves/animais, reclamações, ou algo fora do seu conhecimento), CHAME a função encaminhar_para_atendente e avise o cliente que vai chamar alguém. Não invente que já resolveu.",
     "",
     "TAXA DE ENTREGA / TÁXI DOG:",
-    "- Se o cliente informar um ENDEREÇO, use a função consultar_taxa_entrega (não calcule distância sozinho). Depois apresente os valores retornados.",
-    "- Se o cliente informar direto a DISTÂNCIA em km (sem endereço), use a tabela acima: escolha a faixa 'até X km' cujo limite seja o menor valor >= à distância (ex.: 2,5 km → 'até 3 km').",
-    "- Táxi Dog é sempre ida e volta. Entrega (moto) é valor único.",
-    "- Se faltar o endereço/distância OU o serviço, pergunte antes de dar o valor (não chute).",
+    "- Quando o cliente informar um ENDEREÇO, use a função consultar_taxa_entrega (não calcule distância sozinho).",
+    "- Apresente a cotação EXATAMENTE neste formato (mesmos emojis e * para negrito):",
+    "Segue a cotação da sua taxa:",
+    "",
+    "📍 *Endereço:* <endereço informado>",
+    "📏 *Distância aproximada:* <km> km",
+    "🚚 *Serviço:* <serviço escolhido>",
+    "",
+    "💰 *Valor da taxa:* *R$ <valor>*",
+    "",
+    `- ENTREGA GRÁTIS: até ${g.km || 2} km, se o valor do pedido for acima de R$ ${g.valor || 50}, a entrega é GRÁTIS (R$ 0). Se a distância for até ${g.km || 2} km e o cliente não disse o valor do pedido, avise que acima de R$ ${g.valor || 50} a entrega sai de graça.`,
+    "- Táxi Dog é sempre ida e volta. Se o cliente ainda não escolheu o serviço, pergunte: entrega moto, táxi dog moto ou táxi dog carro.",
     "- Se a função não encontrar o endereço, ou a distância passar da área de cobertura, diga que um atendente confirma o valor exato.",
   ].join("\n");
 }
