@@ -5,6 +5,7 @@
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
+    "start:webjs": "node src/index-webjs.js",
     "dev": "node --watch src/index.js",
     "painel": "node src/painel-only.js"
   },

@@ -8,6 +8,7 @@ const crypto = require("crypto");
 const config = require("./config");
 const conta = require("./conta");
 const estado = require("./estado");
+const conversa = require("./conversa");
 
 const PUBLIC_DIR = path.join(__dirname, "..", "public");
 const UPLOAD_DIR = path.join(PUBLIC_DIR, "uploads");
@@ -102,6 +103,32 @@ function iniciarAdmin(porta) {
     if (r.fails >= MAX_TENTATIVAS) { r.lockUntil = Date.now() + BLOQUEIO_MS; r.fails = 0; }
     tentativas.set(ip, r);
     res.status(401).json({ ok: false, erro: "E-mail ou senha incorretos." });
+  });
+
+  // ---- Webhook do WhatsApp Cloud API (público — a Meta chama aqui) ----
+  // Verificação (a Meta faz um GET ao configurar o webhook).
+  app.get("/webhook", (req, res) => {
+    const esperado = process.env.WHATSAPP_VERIFY_TOKEN || "";
+    if (req.query["hub.mode"] === "subscribe" && req.query["hub.verify_token"] === esperado) {
+      return res.status(200).send(req.query["hub.challenge"]);
+    }
+    res.sendStatus(403);
+  });
+  // Recebimento de mensagens (a Meta faz POST a cada mensagem).
+  app.post("/webhook", (req, res) => {
+    res.sendStatus(200); // responde rápido; processa em seguida
+    try {
+      for (const entry of (req.body && req.body.entry) || []) {
+        for (const ch of entry.changes || []) {
+          for (const msg of (ch.value && ch.value.messages) || []) {
+            if (msg.type !== "text" || !msg.text) continue;
+            conversa.processar(msg.from, msg.text.body || "").catch((e) => console.error("Erro ao processar mensagem:", e.message));
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Erro no webhook:", e.message);
+    }
   });
 
   // ---- A partir daqui, exige login ----

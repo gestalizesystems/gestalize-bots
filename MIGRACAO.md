@@ -1,8 +1,42 @@
 # Migração: whatsapp-web.js → WhatsApp Cloud API (oficial)
 
-Este documento descreve **como migrar** o bot da biblioteca não-oficial `whatsapp-web.js`
-para a **WhatsApp Cloud API** oficial da Meta. É um guia de referência — **nada aqui altera
-o código atual**, que continua funcionando com o `whatsapp-web.js`.
+Este documento descreve a migração do bot para a **WhatsApp Cloud API** oficial da Meta.
+
+> ✅ **O código já está implementado.** `npm start` sobe o servidor (painel + webhook do
+> Cloud API). Falta só **configurar a Meta** e preencher as variáveis (passos abaixo).
+> O modo antigo por QR code continua disponível para teste: `npm run start:webjs`.
+
+---
+
+## ✅ Como ativar (passo a passo)
+
+**Na Meta (uma vez):**
+1. Crie uma conta no **Meta Business** (business.facebook.com).
+2. Em **developers.facebook.com** → *Criar app* → tipo **Empresa/Business**.
+3. No app, adicione o produto **WhatsApp**.
+4. Pegue o **Phone Number ID** (em *WhatsApp → Configuração da API*). Para testar, a Meta dá
+   um **número de teste grátis**; depois você adiciona o número real da loja.
+5. Gere um **token de acesso permanente** (crie um *Usuário do sistema* no Business Settings
+   com permissão de WhatsApp e gere um token que não expira).
+
+**No projeto / `.env`:**
+```
+WHATSAPP_TOKEN=<seu token permanente>
+WHATSAPP_PHONE_ID=<seu Phone Number ID>
+WHATSAPP_VERIFY_TOKEN=<uma senha que você inventa>
+```
+
+**Deploy + webhook:**
+6. Faça o deploy (Railway) e pegue sua **URL pública** (ex.: `https://lecoland.up.railway.app`).
+7. Na Meta → *WhatsApp → Configuração → Webhook*:
+   - **Callback URL:** `https://SUA-URL/webhook`
+   - **Verify token:** o mesmo `WHATSAPP_VERIFY_TOKEN`
+   - Clique em *Verificar e salvar* e **assine o campo `messages`**.
+8. No painel, **ligue o bot** (interruptor no rodapé do menu).
+9. Mande uma mensagem para o número no WhatsApp — o bot responde. 🎉
+
+> 🔒 Hardening opcional (depois): validar a assinatura `X-Hub-Signature-256` com o
+> *App Secret* para recusar webhooks falsos.
 
 ---
 
