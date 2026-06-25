@@ -31,6 +31,8 @@
       padding: 18px 14px; gap: 6px; overflow-y: auto;
     }
     .brand { display: flex; align-items: center; gap: 12px; padding: 6px 6px 16px; }
+    .brand-seta { margin-left: auto; flex: 0 0 auto; background: none; border: none; cursor: pointer; color: var(--navy); display: flex; align-items: center; justify-content: center; padding: 6px; border-radius: 8px; }
+    .brand-seta:hover { background: rgba(31,58,95,.12); }
     .logo-wrap { width: 50px; height: 50px; cursor: pointer; position: relative; flex: 0 0 auto; }
     .logo-inner {
       width: 100%; height: 100%; border-radius: 14px; background: #fff; overflow: hidden;
@@ -120,7 +122,7 @@
       .content { padding: 12px; }
       .dash-kpis, .cat-stats { grid-template-columns: 1fr; }
       .conta-nome { max-width: 84px; }
-      .conta-pop { width: calc(100vw - 24px); right: -4px; }
+      .conta-pop { width: min(272px, calc(100vw - 24px)); }
       .data-pop { right: -4px; }
       .prod { flex-wrap: wrap; }
       .prod .pinfo { flex: 1 1 100%; order: 3; }
@@ -274,7 +276,7 @@
     .conta-av { width: 30px; height: 30px; border-radius: 8px; background: var(--amarelo); color: var(--navy); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; flex: 0 0 auto; }
     .conta-nome { font-size: 13px; font-weight: 600; color: var(--navy); max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .conta-seta { color: var(--suave); display: flex; }
-    .conta-pop { position: absolute; top: calc(100% + 8px); right: 0; background: #fff; border: 1px solid var(--borda); border-radius: 14px; box-shadow: 0 12px 34px rgba(0,0,0,.14); width: 272px; padding: 8px; display: none; z-index: 60; }
+    .conta-pop { position: fixed; top: 76px; left: 14px; background: #fff; border: 1px solid var(--borda); border-radius: 14px; box-shadow: 0 12px 34px rgba(0,0,0,.18); width: 272px; padding: 8px; display: none; z-index: 110; }
     .conta-pop.aberto { display: block; }
     .cp-titulo { font-size: 11px; font-weight: 700; color: var(--suave); text-transform: uppercase; padding: 8px 10px 4px; letter-spacing: .03em; }
     .cp-perfil { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 10px; }
@@ -306,7 +308,18 @@
           <span class="logo-edit" aria-hidden="true">✏️</span>
         </div>
         <div class="brand-text"><strong id="hNome">Lecoland</strong><span>Painel do Bot</span></div>
+        <button class="brand-seta" id="contaBtn" onclick="toggleContas(event)" aria-label="Conta">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
         <input type="file" id="logoInput" accept="image/*" hidden />
+      </div>
+
+      <div class="conta-pop" id="contaPop">
+        <div class="cp-titulo">Perfis conectados</div>
+        <div id="cpLista"></div>
+        <button class="cp-item" onclick="adicionarConta()"><span>➕</span> Adicionar conta</button>
+        <div class="cp-sep"></div>
+        <button class="cp-item cp-sair" onclick="iniciarLogout()"><span>↪</span> Logout</button>
       </div>
 
       <nav class="nav" id="nav">
@@ -356,20 +369,6 @@
             <div style="margin-top:12px;"><button class="btn-primary" style="width:100%" onclick="aplicarData()">Aplicar</button></div>
           </div>
           <button class="btn-primary" id="btnSalvar" onclick="salvar()">💾 Salvar tudo</button>
-          <div class="conta-wrap">
-            <button class="conta-btn" id="contaBtn" onclick="toggleContas(event)">
-              <span class="conta-av" id="contaAv">L</span>
-              <span class="conta-nome" id="contaNomeTop">Lecoland</span>
-              <span class="conta-seta"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
-            </button>
-            <div class="conta-pop" id="contaPop">
-              <div class="cp-titulo">Perfis conectados</div>
-              <div id="cpLista"></div>
-              <button class="cp-item" onclick="adicionarConta()"><span>➕</span> Adicionar conta</button>
-              <div class="cp-sep"></div>
-              <button class="cp-item cp-sair" onclick="iniciarLogout()"><span>↪</span> Logout</button>
-            </div>
-          </div>
         </div>
       </header>
 
@@ -945,8 +944,6 @@
       const nome = (cfg && cfg.negocio && cfg.negocio.nome) || (contaInfo && contaInfo.nomeUsuario) || "Conta";
       const sub = (contaInfo && contaInfo.email) || "Bot do WhatsApp";
       contas = [{ id: "principal", nome, sub, ativo: true }];
-      el("contaAv").textContent = (nome[0] || "L").toUpperCase();
-      el("contaNomeTop").textContent = nome;
       el("cpLista").innerHTML = contas.map(c => `
         <div class="cp-perfil">
           <span class="av">${esc((c.nome[0] || "?").toUpperCase())}</span>
@@ -954,8 +951,21 @@
           ${c.ativo ? '<span class="chk">✓</span>' : ''}
         </div>`).join("");
     }
-    function toggleContas(e) { if (e) e.stopPropagation(); el("contaPop").classList.toggle("aberto"); }
-    document.addEventListener("click", (e) => { if (!e.target.closest(".conta-wrap")) { const p = el("contaPop"); if (p) p.classList.remove("aberto"); } });
+    function toggleContas(e) {
+      if (e) e.stopPropagation();
+      const pop = el("contaPop");
+      if (!pop.classList.contains("aberto")) {
+        const r = document.querySelector(".brand").getBoundingClientRect();
+        pop.style.top = (r.bottom + 4) + "px";
+        pop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - 288)) + "px";
+      }
+      pop.classList.toggle("aberto");
+    }
+    document.addEventListener("click", (e) => {
+      if (!e.target.closest("#contaBtn") && !e.target.closest("#contaPop")) {
+        const p = el("contaPop"); if (p) p.classList.remove("aberto");
+      }
+    });
     function adicionarConta() {
       el("contaPop").classList.remove("aberto");
       alert("Em breve! 🐾 Aqui você poderá conectar mais de um bot/perfil na mesma conta (quando tiver mais de um bot na Gestalize).");
