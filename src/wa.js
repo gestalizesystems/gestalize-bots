@@ -24,14 +24,25 @@ async function enviar(payload) {
   return res.json();
 }
 
+// Corrige o "9º dígito" dos celulares brasileiros: o WhatsApp entrega o número do
+// remetente sem o 9 (ex.: 55 85 8735-3914). Para responder, reinserimos o 9.
+function normalizarNumero(numero) {
+  const n = String(numero).replace(/\D/g, "");
+  // 55 + DDD(2) + 8 dígitos de celular (sem o 9) → insere o 9 depois do DDD.
+  if (n.length === 12 && n.startsWith("55") && /[6-9]/.test(n[4])) {
+    return n.slice(0, 4) + "9" + n.slice(4);
+  }
+  return n;
+}
+
 async function enviarTexto(para, texto) {
-  return enviar({ to: para, type: "text", text: { preview_url: false, body: String(texto).slice(0, 4096) } });
+  return enviar({ to: normalizarNumero(para), type: "text", text: { preview_url: false, body: String(texto).slice(0, 4096) } });
 }
 
 async function enviarImagem(para, link, legenda) {
   const image = { link };
   if (legenda) image.caption = String(legenda).slice(0, 1024);
-  return enviar({ to: para, type: "image", image });
+  return enviar({ to: normalizarNumero(para), type: "image", image });
 }
 
 module.exports = { configurado, enviarTexto, enviarImagem };
