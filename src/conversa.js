@@ -2,7 +2,7 @@
 // O envio é injetado via configurar(fn), onde fn(para, texto) entrega a mensagem (Cloud API).
 
 const { triar } = require("./triage");
-const { responder, limparHistorico } = require("./ai");
+const { responder, limparHistorico, registrarTurno } = require("./ai");
 const config = require("./config");
 
 let enviar = async () => {}; // definido pelo ponto de entrada (Cloud API ou web.js)
@@ -146,6 +146,7 @@ async function processar(from, texto) {
 
   if (r.resposta) {
     await enviar(from, r.resposta);
+    registrarTurno(from, texto, r.resposta); // memória: a IA passa a "lembrar" do que veio do menu
     return;
   }
 

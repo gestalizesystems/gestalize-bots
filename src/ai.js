@@ -150,6 +150,7 @@ function montarContexto() {
     dados.infoIA ? "CONHECIMENTO DO NEGÓCIO:\n" + dados.infoIA : "",
     "",
     "REGRAS:",
+    "- MEMÓRIA: o histórico da conversa inclui as escolhas que o cliente fez no MENU (ex.: o serviço de entrega) e tudo que ele já informou. NUNCA pergunte de novo algo que o cliente já escolheu ou já disse — use o que já está na conversa. Ex.: se ele escolheu 'Entrega (moto)' no menu e mandou o endereço, calcule direto, sem perguntar o serviço outra vez.",
     "- Responda APENAS com base nas informações acima. Não invente preços, serviços, horários ou taxas.",
     "- Se a pergunta for sobre algo que você não tem (ex.: preço específico, disponibilidade, caso clínico), diga que vai verificar com um atendente e peça os dados necessários.",
     "- Nunca dê diagnóstico ou orientação médica veterinária; em emergências, oriente a ligar para o telefone do negócio.",
@@ -176,7 +177,7 @@ function montarContexto() {
     "💰 *Valor da taxa:* *R$ <valor>*",
     "",
     `- ENTREGA GRÁTIS (vale APENAS para o serviço *Entrega moto* — NÃO vale para táxi dog): até ${g.km || 2} km, se o valor do pedido for acima de R$ ${g.valor || 50}, a Entrega moto é GRÁTIS (R$ 0). Se for até ${g.km || 2} km e o cliente não disse o valor do pedido, avise que, acima de R$ ${g.valor || 50}, a entrega moto sai de graça. Táxi dog sempre cobra a taxa normal.`,
-    "- Táxi Dog é sempre ida e volta. Se o cliente ainda não escolheu o serviço, pergunte: entrega moto, táxi dog moto ou táxi dog carro.",
+    "- Táxi Dog é sempre ida e volta. Se o cliente JÁ escolheu o serviço (no menu ou antes na conversa), use esse serviço e NÃO pergunte de novo. Só pergunte (entrega moto, táxi dog moto ou táxi dog carro) se ele realmente ainda não tiver escolhido.",
     "- Se a função não encontrar o endereço, ou a distância passar da área de cobertura, diga que um atendente confirma o valor exato.",
   ].join("\n");
 }
@@ -184,11 +185,20 @@ function montarContexto() {
 // Histórico em memória no formato do Gemini: contactId -> [{role, parts:[{text}]}]
 // Guardamos só as mensagens de texto (não as chamadas de função intermediárias).
 const historicos = new Map();
-const MAX_TURNOS = 6;
+const MAX_TURNOS = 12;
 
 function getHistorico(contactId) {
   if (!historicos.has(contactId)) historicos.set(contactId, []);
   return historicos.get(contactId);
+}
+
+// Registra no histórico um turno tratado FORA da IA (menu/opção/comando), para que
+// a IA "lembre" o que já aconteceu (ex.: o cliente já escolheu Entrega moto no menu).
+function registrarTurno(contactId, userMsg, botMsg) {
+  const historico = getHistorico(contactId);
+  historico.push({ role: "user", parts: [{ text: String(userMsg || "") }] });
+  historico.push({ role: "model", parts: [{ text: String(botMsg || "") }] });
+  if (historico.length > MAX_TURNOS) historico.splice(0, historico.length - MAX_TURNOS);
 }
 
 async function responder(contactId, mensagem) {
@@ -247,4 +257,4 @@ function limparHistorico(contactId) {
   historicos.delete(contactId);
 }
 
-module.exports = { responder, limparHistorico, buscarProdutos };
+module.exports = { responder, limparHistorico, registrarTurno, buscarProdutos };
