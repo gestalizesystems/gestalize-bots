@@ -388,6 +388,7 @@
         <a class="nav-item" data-target="page-faq" data-titulo="Respostas rápidas (FAQ)" data-sub="Respostas para dúvidas comuns dos clientes."><span class="ic">❓</span> Respostas rápidas</a>
         <a class="nav-item" data-target="page-entrega" data-titulo="Taxas e serviços" data-sub="Entrega e Táxi Dog, com cálculo por distância."><span class="ic">🛵</span> Taxas e serviços</a>
         <a class="nav-item" data-target="page-catalogo" data-titulo="Catálogo" data-sub="Produtos, grupos e subgrupos que o bot envia aos clientes."><span class="ic">🛍️</span> Catálogo</a>
+        <a class="nav-item" data-target="page-clientes" data-titulo="Clientes" data-sub="Memória do bot: nome, telefone e endereço de cada cliente."><span class="ic">👥</span> Clientes</a>
         <a class="nav-item" data-target="page-gatilhos" data-titulo="Palavras-chave gerais" data-sub="Atalhos para o bot entender comandos importantes."><span class="ic">⚙️</span> Palavras-chave</a>
         <a class="nav-item" data-target="page-conta" data-titulo="Configurações gerais" data-sub="Gerencie seus dados de acesso ao painel."><span class="ic">👤</span> Configurações gerais</a>
       </nav>
@@ -626,6 +627,30 @@
           </div>
         </div>
 
+        <section class="card page" id="page-clientes">
+          <h2>👥 Clientes</h2>
+          <p class="dica">A memória do bot: nome, telefone e endereço de cada cliente. O bot preenche sozinho durante as conversas e reusa depois (ex.: já calcula a entrega sem pedir o endereço de novo).</p>
+          <div class="cat-topo">
+            <input class="busca" id="cliBusca" placeholder="🔎 Buscar (nome ou telefone)..." oninput="cliPagina=1;renderClientes()" />
+            <button class="btn-primary" onclick="abrirCliente()">+ Adicionar cliente</button>
+          </div>
+          <div id="listaClientes"></div>
+          <div id="cliPager" class="catpager"></div>
+        </section>
+
+        <div class="modal-bg" id="modalCliente">
+          <div class="modal">
+            <h3 id="cliModalTitulo" style="margin:0 0 16px">Cliente</h3>
+            <label>Nome</label><input type="text" id="cliNome" />
+            <label>Telefone (com DDD, só números — ex.: 5585999999999)</label><input type="text" id="cliTelefone" />
+            <label>Endereço</label><textarea id="cliEndereco"></textarea>
+            <div class="modal-acoes">
+              <button class="btn-sec" onclick="fecharCliente()">Cancelar</button>
+              <button class="btn-primary" onclick="salvarCliente()">Salvar</button>
+            </div>
+          </div>
+        </div>
+
         <section class="card page" id="page-gatilhos">
           <h2>⚙️ Palavras-chave gerais</h2>
           <p class="dica">Atalhos para o bot entender comandos importantes. Digite e clique em <b>Adicionar</b> (ou Enter).</p>
@@ -747,6 +772,7 @@
         el("topTitulo").textContent = navEl.dataset.titulo || "Configurações do Bot";
         el("topSub").textContent = navEl.dataset.sub || "";
       }
+      if (id === "page-clientes") carregarClientes();
       window.scrollTo(0, 0);
       fecharMenu(); // fecha a gaveta no mobile ao trocar de página
     }
@@ -1277,19 +1303,75 @@
       el("catPager").innerHTML = montarPager(catPagina, totalPags, total);
     }
     function irPagina(n) { catPagina = n; renderProdutos(); const c = el("catProdutos"); if (c) c.scrollIntoView({ block: "start" }); }
-    function montarPager(atual, total, qtd) {
-      if (total <= 1) return `<div class="pg-info">${qtd} produto(s)</div>`;
+    function montarPager(atual, total, qtd, fn, rotulo) {
+      fn = fn || "irPagina"; rotulo = rotulo || "produtos";
+      if (total <= 1) return `<div class="pg-info">${qtd} ${rotulo}</div>`;
       const set = new Set([1, total, atual, atual - 1, atual + 1, atual - 2, atual + 2]);
       const nums = [...set].filter(n => n >= 1 && n <= total).sort((a, b) => a - b);
-      let botoes = `<button class="pg" ${atual <= 1 ? "disabled" : ""} onclick="irPagina(${atual - 1})">‹</button>`;
+      let botoes = `<button class="pg" ${atual <= 1 ? "disabled" : ""} onclick="${fn}(${atual - 1})">‹</button>`;
       let prev = 0;
       for (const n of nums) {
         if (n - prev > 1) botoes += `<span class="pg-dots">…</span>`;
-        botoes += `<button class="pg ${n === atual ? "ativo" : ""}" onclick="irPagina(${n})">${n}</button>`;
+        botoes += `<button class="pg ${n === atual ? "ativo" : ""}" onclick="${fn}(${n})">${n}</button>`;
         prev = n;
       }
-      botoes += `<button class="pg" ${atual >= total ? "disabled" : ""} onclick="irPagina(${atual + 1})">›</button>`;
-      return `<div class="pg-info">${qtd} produtos · página ${atual} de ${total}</div><div class="pager">${botoes}</div>`;
+      botoes += `<button class="pg" ${atual >= total ? "disabled" : ""} onclick="${fn}(${atual + 1})">›</button>`;
+      return `<div class="pg-info">${qtd} ${rotulo} · página ${atual} de ${total}</div><div class="pager">${botoes}</div>`;
+    }
+
+    // ===== Clientes (memória do bot) =====
+    let clientesLista = [], cliPagina = 1, cliEditTel = null;
+    async function carregarClientes() {
+      try { const d = await (await fetch("/api/clientes")).json(); clientesLista = d.clientes || []; renderClientes(); }
+      catch (_) { el("listaClientes").innerHTML = '<p class="dica">Erro ao carregar clientes.</p>'; }
+    }
+    function cliIrPagina(n) { cliPagina = n; renderClientes(); const c = el("listaClientes"); if (c) c.scrollIntoView({ block: "start" }); }
+    function renderClientes() {
+      const q = normCat(el("cliBusca").value);
+      const lista = clientesLista.filter(c => !q || normCat((c.nome || "") + " " + (c.telefone || "") + " " + (c.endereco || "")).includes(q));
+      if (!lista.length) { el("listaClientes").innerHTML = `<p class="dica">${clientesLista.length ? "Nenhum cliente encontrado." : "Nenhum cliente ainda — o bot vai preenchendo conforme conversa."}</p>`; el("cliPager").innerHTML = ""; return; }
+      const POR = 10, total = lista.length, totalPags = Math.ceil(total / POR);
+      cliPagina = Math.min(Math.max(1, cliPagina), totalPags || 1);
+      const ini = (cliPagina - 1) * POR;
+      el("listaClientes").innerHTML = lista.slice(ini, ini + POR).map(c => `
+        <div class="prod">
+          <div class="semimg">👤</div>
+          <div class="pinfo">
+            <div class="pnome">${esc(c.nome || "(sem nome)")}</div>
+            <div class="pcod" style="font-size:12px;color:var(--suave);font-weight:600">📞 ${esc(c.telefone || "")}</div>
+            <div class="pdesc">📍 ${esc(c.endereco || "(sem endereço)")}</div>
+          </div>
+          <div class="pacoes">
+            <button class="iconbtn" title="Editar" onclick="abrirCliente('${esc(c.telefone)}')">✏️</button>
+            <button class="iconbtn del" title="Excluir" onclick="excluirCliente('${esc(c.telefone)}')">🗑️</button>
+          </div>
+        </div>`).join("");
+      el("cliPager").innerHTML = montarPager(cliPagina, totalPags, total, "cliIrPagina", "clientes");
+    }
+    function abrirCliente(tel) {
+      const c = tel ? clientesLista.find(x => x.telefone === tel) : null;
+      cliEditTel = tel || null;
+      el("cliModalTitulo").textContent = c ? "Editar cliente" : "Novo cliente";
+      el("cliNome").value = c ? (c.nome || "") : "";
+      el("cliTelefone").value = c ? (c.telefone || "") : "";
+      el("cliTelefone").disabled = !!c; // telefone é a chave: não muda na edição
+      el("cliEndereco").value = c ? (c.endereco || "") : "";
+      el("modalCliente").classList.add("aberto");
+    }
+    function fecharCliente() { el("modalCliente").classList.remove("aberto"); }
+    async function salvarCliente() {
+      const telefone = (cliEditTel || el("cliTelefone").value).replace(/\D/g, "");
+      if (!telefone) { alert("Informe o telefone (com DDD)."); return; }
+      try {
+        await apiCat("/api/clientes", { telefone, nome: el("cliNome").value.trim(), endereco: el("cliEndereco").value.trim() });
+        fecharCliente(); await carregarClientes();
+      } catch (e) { alert("Erro ao salvar: " + e.message); }
+    }
+    async function excluirCliente(tel) {
+      const c = clientesLista.find(x => x.telefone === tel);
+      if (!confirm(`Excluir o cliente ${c && c.nome ? "“" + c.nome + "”" : tel}?`)) return;
+      try { await apiCat("/api/clientes/remover", { telefone: tel }); await carregarClientes(); }
+      catch (e) { alert("Erro ao excluir: " + e.message); }
     }
     function renderTaxLista(tipo, alvo) {
       el(alvo).innerHTML = (catalogo[tipo] || []).map((v, i) =>

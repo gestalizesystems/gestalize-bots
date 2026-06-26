@@ -9,6 +9,7 @@ const config = require("./config");
 const conta = require("./conta");
 const estado = require("./estado");
 const conversa = require("./conversa");
+const clientes = require("./clientes");
 
 const PUBLIC_DIR = path.join(__dirname, "..", "public");
 // Em produção (Railway) as imagens vão para o Volume persistente; local usa public/uploads.
@@ -159,9 +160,13 @@ function iniciarAdmin(porta) {
     try {
       for (const entry of (req.body && req.body.entry) || []) {
         for (const ch of entry.changes || []) {
-          for (const msg of (ch.value && ch.value.messages) || []) {
+          const val = ch.value || {};
+          const nomes = {};
+          for (const ct of val.contacts || []) if (ct.wa_id) nomes[ct.wa_id] = ct.profile && ct.profile.name;
+          for (const msg of val.messages || []) {
             if (msg.type !== "text" || !msg.text) continue;
-            conversa.processar(msg.from, msg.text.body || "").catch((e) => console.error("Erro ao processar mensagem:", e.message));
+            const nomeWpp = nomes[msg.from] || Object.values(nomes)[0]; // nome do perfil do WhatsApp
+            conversa.processar(msg.from, msg.text.body || "", nomeWpp).catch((e) => console.error("Erro ao processar mensagem:", e.message));
           }
         }
       }
@@ -290,6 +295,27 @@ function iniciarAdmin(porta) {
       if (Array.isArray(subgrupos)) cat.subgrupos = subgrupos;
       if (Array.isArray(especificacoes)) cat.especificacoes = especificacoes;
       config.salvar(c);
+      res.json({ ok: true });
+    } catch (e) {
+      res.status(400).json({ ok: false, erro: e.message });
+    }
+  });
+
+  // ---- Clientes (memória do bot: nome, telefone, endereço) ----
+  app.get("/api/clientes", (req, res) => res.json({ ok: true, clientes: clientes.listar() }));
+  app.post("/api/clientes", (req, res) => {
+    try {
+      const { telefone, nome, endereco } = req.body || {};
+      const tel = String(telefone || "").replace(/\D/g, "");
+      if (!tel) throw new Error("Telefone obrigatório.");
+      res.json({ ok: true, cliente: clientes.definir(tel, { nome, endereco }) });
+    } catch (e) {
+      res.status(400).json({ ok: false, erro: e.message });
+    }
+  });
+  app.post("/api/clientes/remover", (req, res) => {
+    try {
+      clientes.remover(String((req.body && req.body.telefone) || "").replace(/\D/g, ""));
       res.json({ ok: true });
     } catch (e) {
       res.status(400).json({ ok: false, erro: e.message });

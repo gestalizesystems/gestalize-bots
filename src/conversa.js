@@ -4,6 +4,7 @@
 const { triar } = require("./triage");
 const { responder, limparHistorico, registrarTurno } = require("./ai");
 const config = require("./config");
+const clientes = require("./clientes");
 
 let enviar = async () => {}; // texto — definido pelo ponto de entrada (Cloud API)
 let enviarImagem = async () => {}; // imagem (link + legenda)
@@ -122,10 +123,15 @@ async function finalizar(contactId, enviarDespedida) {
 }
 
 // Processa uma mensagem recebida do cliente.
-async function processar(from, texto) {
+async function processar(from, texto, nomeWpp) {
   const dados = config.get();
   // Bot desligado no painel → não responde nada.
   if (!dados.botAtivo) return;
+
+  // 1º contato: guarda o telefone e o nome do perfil do WhatsApp (se ainda não tiver nome).
+  const conhecido = clientes.get(from);
+  if (!conhecido) clientes.salvar(from, { nome: nomeWpp });
+  else if (nomeWpp && !conhecido.nome) clientes.salvar(from, { nome: nomeWpp });
 
   // Fora do horário → só a mensagem de ausência (sem menu/saudação/IA), no máximo 1x/h.
   if (foraDoHorario(dados)) {

@@ -8,6 +8,7 @@
 const { GoogleGenAI } = require("@google/genai");
 const config = require("./config");
 const geo = require("./geo");
+const clientes = require("./clientes");
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 const MODELO = process.env.GEMINI_MODEL || "gemini-2.5-flash";
@@ -29,6 +30,19 @@ const TOOLS = [
             },
           },
           required: ["endereco"],
+        },
+      },
+      {
+        name: "salvar_dados_cliente",
+        description:
+          "Guarda na memória os dados do cliente (nome e/ou endereço) para lembrar nas próximas conversas. Chame SEMPRE que o cliente informar o nome dele ou um endereço. Passe só o que ele disse.",
+        parameters: {
+          type: "object",
+          properties: {
+            nome: { type: "string", description: "Nome do cliente, se ele informou." },
+            endereco: { type: "string", description: "Endereço do cliente (rua, número, bairro), se ele informou." },
+          },
+          required: [],
         },
       },
       {
@@ -100,9 +114,15 @@ function buscarProdutos({ grupo, subgrupo, especificacao, texto } = {}) {
   };
 }
 
-async function executarFuncao(nome, args) {
+async function executarFuncao(nome, args, contactId) {
   if (nome === "consultar_taxa_entrega") {
-    return await geo.consultarTaxaPorEndereco((args && args.endereco) || "");
+    const endereco = (args && args.endereco) || "";
+    if (endereco && contactId) clientes.salvar(contactId, { endereco }); // memoriza o endereço
+    return await geo.consultarTaxaPorEndereco(endereco);
+  }
+  if (nome === "salvar_dados_cliente") {
+    if (contactId) clientes.salvar(contactId, { nome: args && args.nome, endereco: args && args.endereco });
+    return { ok: true };
   }
   if (nome === "buscar_produtos") {
     return buscarProdutos(args || {});
@@ -115,11 +135,16 @@ async function executarFuncao(nome, args) {
 
 // Monta a "system instruction" com o contexto do negócio. Reconstruída a cada
 // chamada para refletir edições feitas no painel sem reiniciar o bot.
-function montarContexto() {
+function montarContexto(cliente) {
   const dados = config.get();
   const n = dados.negocio;
   const g = (dados.entrega && dados.entrega.gratis) || {}; // regra de entrega grátis
   const cat = dados.catalogo || {}; // catálogo (grupos/subgrupos/especificações/produtos)
+  const linhasCliente = cliente && (cliente.nome || cliente.endereco)
+    ? "DADOS DO CLIENTE (já conhecidos — NÃO pergunte de novo, use direto):"
+        + (cliente.nome ? "\nNome: " + cliente.nome : "")
+        + (cliente.endereco ? "\nEndereço: " + cliente.endereco : "")
+    : "DADOS DO CLIENTE: ainda não temos o nome/endereço deste cliente.";
 
   const extras = (dados.mensagensExtras || [])
     .map((x) => `- ${x.titulo}: ${(x.resposta || "").replace(/\n+/g, " ").replace(/\*/g, "")}`)
@@ -140,6 +165,8 @@ function montarContexto() {
     `Horário: ${n.horarioSemana}; ${n.horarioSabado}; ${n.horarioDomingo}`,
     `Pagamento: ${n.pagamento}`,
     "",
+    linhasCliente,
+    "",
     "SERVIÇOS E INFORMAÇÕES:",
     linhasServicos,
     "",
@@ -152,6 +179,7 @@ function montarContexto() {
     "",
     "REGRAS:",
     "- MEMÓRIA: o histórico da conversa inclui as escolhas que o cliente fez no MENU (ex.: o serviço de entrega) e tudo que ele já informou. NUNCA pergunte de novo algo que o cliente já escolheu ou já disse — use o que já está na conversa. Ex.: se ele escolheu 'Entrega (moto)' no menu e mandou o endereço, calcule direto, sem perguntar o serviço outra vez.",
+    "- CLIENTE (memória entre conversas): se a seção DADOS DO CLIENTE já tiver o nome ou o endereço, USE-os e NÃO pergunte de novo (nem em conversas futuras). Sempre que o cliente informar o NOME ou um ENDEREÇO, CHAME a função salvar_dados_cliente para guardar. No primeiro atendimento, se ainda não souber o nome, pode perguntar de forma simpática uma única vez.",
     "- Responda APENAS com base nas informações acima. Não invente preços, serviços, horários ou taxas.",
     "- Se a pergunta for sobre algo que você não tem (ex.: preço específico, disponibilidade, caso clínico), diga que vai verificar com um atendente e peça os dados necessários.",
     "- Nunca dê diagnóstico ou orientação médica veterinária; em emergências, oriente a ligar para o telefone do negócio.",
@@ -169,6 +197,7 @@ function montarContexto() {
     "- Nunca invente produtos, marcas ou preços — use exclusivamente o que a função retornar.",
     "",
     "TAXA DE ENTREGA / TÁXI DOG:",
+    "- Se você JÁ TEM o endereço do cliente (na seção DADOS DO CLIENTE), calcule a taxa DIRETO com consultar_taxa_entrega usando esse endereço — NÃO peça o endereço de novo. Só peça se realmente não souber.",
     "- Quando o cliente informar um ENDEREÇO, use a função consultar_taxa_entrega (não calcule distância sozinho).",
     "- Apresente a cotação EXATAMENTE neste formato (mesmos emojis e * para negrito):",
     "Segue a cotação da sua taxa:",
@@ -210,7 +239,7 @@ async function responder(contactId, mensagem) {
   const working = [...historico, { role: "user", parts: [{ text: mensagem }] }];
 
   const cfg = {
-    systemInstruction: montarContexto(),
+    systemInstruction: montarContexto(clientes.get(contactId)),
     maxOutputTokens: 600,
     temperature: 0.3,
     tools: TOOLS,
@@ -235,7 +264,7 @@ async function responder(contactId, mensagem) {
         encaminhar = true;
         motivo = (chamada.args && chamada.args.motivo) || "";
       }
-      const resultado = await executarFuncao(chamada.name, chamada.args);
+      const resultado = await executarFuncao(chamada.name, chamada.args, contactId);
       if (chamada.name === "buscar_produtos" && resultado && Array.isArray(resultado.produtos)) produtos = resultado.produtos;
       partesResposta.push({ functionResponse: { name: chamada.name, response: resultado } });
     }
