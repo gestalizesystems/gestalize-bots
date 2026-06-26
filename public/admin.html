@@ -242,6 +242,14 @@
     .cat-topo { display: flex; gap: 12px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
     .cat-topo input.busca { flex: 1; min-width: 200px; padding: 11px 14px; border: 1px solid var(--borda); border-radius: 10px; font-size: 14px; font-family: inherit; }
     .prod { display: flex; gap: 14px; align-items: center; padding: 14px; border: 1px solid var(--borda); border-radius: 14px; margin-bottom: 12px; background: #fff; }
+    .prod.inativo { opacity: .6; }
+    .prod-toggle { position: relative; width: 42px; height: 24px; flex: 0 0 auto; cursor: pointer; display: inline-block; }
+    .prod-toggle input { opacity: 0; width: 0; height: 0; }
+    .prod-toggle .sl { position: absolute; inset: 0; background: #cbd5e1; border-radius: 24px; transition: .2s; }
+    .prod-toggle .sl::before { content: ""; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: .2s; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+    .prod-toggle input:checked + .sl { background: var(--azul-logo); }
+    .prod-toggle input:checked + .sl::before { transform: translateX(18px); }
+    .cat-filtro { padding: 11px 12px; border: 1px solid var(--borda); border-radius: 10px; font-size: 14px; font-family: inherit; background: #fff; cursor: pointer; color: var(--texto); }
     .prod img.pimg, .prod .semimg { width: 66px; height: 66px; border-radius: 10px; object-fit: cover; flex: 0 0 auto; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #94a3b8; }
     .prod .pinfo { flex: 1; min-width: 0; }
     .prod .pnome { font-weight: 700; color: var(--navy); font-size: 15px; }
@@ -553,6 +561,11 @@
           <div class="cat-sub ativo" id="catsub-produtos">
             <div class="cat-topo">
               <input class="busca" id="catBusca" placeholder="🔎 Buscar produto..." oninput="renderProdutos()" />
+              <select class="cat-filtro" id="catFiltro" onchange="renderProdutos()">
+                <option value="todos">Todos</option>
+                <option value="ativos">✅ Ativos</option>
+                <option value="inativos">🚫 Inativos (em falta)</option>
+              </select>
               <button class="btn-primary" onclick="abrirProduto()">+ Adicionar produto</button>
             </div>
             <div id="catProdutos"></div>
@@ -1211,12 +1224,25 @@
       renderTaxLista("subgrupos", "listaSubgrupos");
       renderTaxLista("especificacoes", "listaEspec");
     }
+    function toggleProdutoAtivo(id, ativo) {
+      const p = catalogo.produtos.find(x => x.id === id);
+      if (!p) return;
+      p.ativo = ativo;
+      salvarCatalogo();
+      renderProdutos();
+    }
     function renderProdutos() {
       const q = normCat(el("catBusca").value);
-      const lista = catalogo.produtos.filter(p => !q || normCat(p.nome + " " + (p.descricao || "") + " " + (p.grupo || "") + " " + (p.subgrupos || []).join(" ")).includes(q));
+      const filtro = el("catFiltro") ? el("catFiltro").value : "todos";
+      let lista = catalogo.produtos.filter(p => !q || normCat(p.nome + " " + (p.descricao || "") + " " + (p.grupo || "") + " " + (p.subgrupos || []).join(" ")).includes(q));
+      if (filtro === "ativos") lista = lista.filter(p => p.ativo !== false);
+      else if (filtro === "inativos") lista = lista.filter(p => p.ativo === false);
       if (!lista.length) { el("catProdutos").innerHTML = `<p class="dica">Nenhum produto ${catalogo.produtos.length ? "encontrado" : "cadastrado ainda"}. Clique em “Adicionar produto”.</p>`; return; }
       el("catProdutos").innerHTML = lista.map(p => `
-        <div class="prod">
+        <div class="prod ${p.ativo === false ? "inativo" : ""}">
+          <label class="prod-toggle" title="${p.ativo === false ? "Ativar (em estoque)" : "Desativar (em falta)"}">
+            <input type="checkbox" ${p.ativo !== false ? "checked" : ""} onchange="toggleProdutoAtivo('${p.id}', this.checked)" /><span class="sl"></span>
+          </label>
           ${p.imagem ? `<img class="pimg" src="${esc(p.imagem)}" />` : `<div class="semimg">📦</div>`}
           <div class="pinfo">
             <div class="pnome">${esc(p.nome)} ${p.ativo === false ? '<span style="color:#dc2626;font-size:12px">(inativo)</span>' : ""}</div>
