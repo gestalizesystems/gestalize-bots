@@ -242,6 +242,60 @@ function iniciarAdmin(porta) {
     }
   });
 
+  // Garante a estrutura do catálogo no config em memória.
+  function catalogoDe(c) {
+    if (!c.catalogo || typeof c.catalogo !== "object") c.catalogo = { grupos: [], subgrupos: [], especificacoes: [], produtos: [] };
+    if (!Array.isArray(c.catalogo.produtos)) c.catalogo.produtos = [];
+    return c.catalogo;
+  }
+
+  // Salva/atualiza UM produto (evita reenviar o catálogo inteiro).
+  app.post("/api/catalogo/produto", (req, res) => {
+    try {
+      const prod = req.body && req.body.produto;
+      if (!prod || !prod.id || !prod.nome) throw new Error("Produto inválido.");
+      const c = config.get();
+      const cat = catalogoDe(c);
+      const i = cat.produtos.findIndex((p) => p.id === prod.id);
+      if (i > -1) cat.produtos[i] = prod;
+      else cat.produtos.unshift(prod);
+      config.salvar(c);
+      res.json({ ok: true });
+    } catch (e) {
+      res.status(400).json({ ok: false, erro: e.message });
+    }
+  });
+
+  // Remove UM produto.
+  app.post("/api/catalogo/produto/remover", (req, res) => {
+    try {
+      const id = req.body && req.body.id;
+      const c = config.get();
+      const cat = catalogoDe(c);
+      cat.produtos = cat.produtos.filter((p) => p.id !== id);
+      config.salvar(c);
+      res.json({ ok: true });
+    } catch (e) {
+      res.status(400).json({ ok: false, erro: e.message });
+    }
+  });
+
+  // Atualiza só a taxonomia (grupos/subgrupos/especificações) — preserva os produtos.
+  app.post("/api/catalogo/taxonomia", (req, res) => {
+    try {
+      const { grupos, subgrupos, especificacoes } = req.body || {};
+      const c = config.get();
+      const cat = catalogoDe(c);
+      if (Array.isArray(grupos)) cat.grupos = grupos;
+      if (Array.isArray(subgrupos)) cat.subgrupos = subgrupos;
+      if (Array.isArray(especificacoes)) cat.especificacoes = especificacoes;
+      config.salvar(c);
+      res.json({ ok: true });
+    } catch (e) {
+      res.status(400).json({ ok: false, erro: e.message });
+    }
+  });
+
   // Imagem de produto (data URL base64 -> arquivo em /uploads).
   app.post("/api/catalogo/imagem", (req, res) => {
     try {

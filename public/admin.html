@@ -250,6 +250,14 @@
     .prod-toggle input:checked + .sl { background: var(--azul-logo); }
     .prod-toggle input:checked + .sl::before { transform: translateX(18px); }
     .cat-filtro { padding: 11px 12px; border: 1px solid var(--borda); border-radius: 10px; font-size: 14px; font-family: inherit; background: #fff; cursor: pointer; color: var(--texto); }
+    .catpager { margin-top: 8px; }
+    .catpager .pg-info { text-align: center; color: var(--suave); font-size: 13px; margin-bottom: 8px; }
+    .catpager .pager { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; align-items: center; }
+    .catpager .pg { min-width: 36px; height: 36px; padding: 0 8px; border: 1px solid var(--borda); background: #fff; border-radius: 9px; cursor: pointer; font-family: inherit; font-size: 14px; font-weight: 600; color: var(--texto); }
+    .catpager .pg:hover:not(:disabled) { border-color: var(--azul-logo); }
+    .catpager .pg.ativo { background: var(--azul-logo); color: #fff; border-color: var(--azul-logo); }
+    .catpager .pg:disabled { opacity: .4; cursor: default; }
+    .catpager .pg-dots { color: var(--suave); padding: 0 2px; }
     .prod img.pimg, .prod .semimg { width: 66px; height: 66px; border-radius: 10px; object-fit: cover; flex: 0 0 auto; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #94a3b8; }
     .prod .pinfo { flex: 1; min-width: 0; }
     .prod .pnome { font-weight: 700; color: var(--navy); font-size: 15px; }
@@ -560,8 +568,8 @@
 
           <div class="cat-sub ativo" id="catsub-produtos">
             <div class="cat-topo">
-              <input class="busca" id="catBusca" placeholder="🔎 Buscar produto..." oninput="renderProdutos()" />
-              <select class="cat-filtro" id="catFiltro" onchange="renderProdutos()">
+              <input class="busca" id="catBusca" placeholder="🔎 Buscar (nome ou código)..." oninput="catPagina=1;renderProdutos()" />
+              <select class="cat-filtro" id="catFiltro" onchange="catPagina=1;renderProdutos()">
                 <option value="todos">Todos</option>
                 <option value="ativos">✅ Ativos</option>
                 <option value="inativos">🚫 Inativos (em falta)</option>
@@ -569,6 +577,7 @@
               <button class="btn-primary" onclick="abrirProduto()">+ Adicionar produto</button>
             </div>
             <div id="catProdutos"></div>
+            <div id="catPager" class="catpager"></div>
           </div>
 
           <div class="cat-sub" id="catsub-grupos">
@@ -1210,7 +1219,7 @@
 
     // ===== Catálogo =====
     let catalogo = { grupos: [], subgrupos: [], especificacoes: [], produtos: [] };
-    let prodEditId = null, prodImagem = "";
+    let prodEditId = null, prodImagem = "", catPagina = 1;
     function normCat(t) { return String(t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, ""); }
 
     function catTab(nome, elx) {
@@ -1229,7 +1238,7 @@
       const p = catalogo.produtos.find(x => x.id === id);
       if (!p) return;
       p.ativo = ativo;
-      salvarCatalogo();
+      salvarProdutoServidor(p);
       renderProdutos();
     }
     function renderProdutos() {
@@ -1238,10 +1247,11 @@
       let lista = catalogo.produtos.filter(p => !q || normCat(p.nome + " " + (p.codigo || "") + " " + (p.descricao || "") + " " + (p.grupo || "") + " " + (p.subgrupos || []).join(" ")).includes(q));
       if (filtro === "ativos") lista = lista.filter(p => p.ativo !== false);
       else if (filtro === "inativos") lista = lista.filter(p => p.ativo === false);
-      if (!lista.length) { el("catProdutos").innerHTML = `<p class="dica">Nenhum produto ${catalogo.produtos.length ? "encontrado" : "cadastrado ainda"}. Clique em “Adicionar produto”.</p>`; return; }
-      const TETO = 100, total = lista.length;
-      const aviso = total > TETO ? `<p class="dica">Mostrando ${TETO} de ${total} produtos — use a 🔎 busca (nome ou código) para refinar.</p>` : "";
-      el("catProdutos").innerHTML = aviso + lista.slice(0, TETO).map(p => `
+      if (!lista.length) { el("catProdutos").innerHTML = `<p class="dica">Nenhum produto ${catalogo.produtos.length ? "encontrado" : "cadastrado ainda"}. Clique em “Adicionar produto”.</p>`; el("catPager").innerHTML = ""; return; }
+      const POR_PAG = 10, total = lista.length, totalPags = Math.ceil(total / POR_PAG);
+      catPagina = Math.min(Math.max(1, catPagina), totalPags || 1);
+      const ini = (catPagina - 1) * POR_PAG;
+      el("catProdutos").innerHTML = lista.slice(ini, ini + POR_PAG).map(p => `
         <div class="prod ${p.ativo === false ? "inativo" : ""}">
           <label class="prod-toggle" title="${p.ativo === false ? "Ativar (em estoque)" : "Desativar (em falta)"}">
             <input type="checkbox" ${p.ativo !== false ? "checked" : ""} onchange="toggleProdutoAtivo('${p.id}', this.checked)" /><span class="sl"></span>
@@ -1264,6 +1274,22 @@
             <button class="iconbtn del" title="Excluir" onclick="excluirProduto('${p.id}')">🗑️</button>
           </div>
         </div>`).join("");
+      el("catPager").innerHTML = montarPager(catPagina, totalPags, total);
+    }
+    function irPagina(n) { catPagina = n; renderProdutos(); const c = el("catProdutos"); if (c) c.scrollIntoView({ block: "start" }); }
+    function montarPager(atual, total, qtd) {
+      if (total <= 1) return `<div class="pg-info">${qtd} produto(s)</div>`;
+      const set = new Set([1, total, atual, atual - 1, atual + 1, atual - 2, atual + 2]);
+      const nums = [...set].filter(n => n >= 1 && n <= total).sort((a, b) => a - b);
+      let botoes = `<button class="pg" ${atual <= 1 ? "disabled" : ""} onclick="irPagina(${atual - 1})">‹</button>`;
+      let prev = 0;
+      for (const n of nums) {
+        if (n - prev > 1) botoes += `<span class="pg-dots">…</span>`;
+        botoes += `<button class="pg ${n === atual ? "ativo" : ""}" onclick="irPagina(${n})">${n}</button>`;
+        prev = n;
+      }
+      botoes += `<button class="pg" ${atual >= total ? "disabled" : ""} onclick="irPagina(${atual + 1})">›</button>`;
+      return `<div class="pg-info">${qtd} produtos · página ${atual} de ${total}</div><div class="pager">${botoes}</div>`;
     }
     function renderTaxLista(tipo, alvo) {
       el(alvo).innerHTML = (catalogo[tipo] || []).map((v, i) =>
@@ -1274,11 +1300,11 @@
       const inp = el({ grupos: "novoGrupo", subgrupos: "novoSubgrupo", especificacoes: "novoEspec" }[tipo]);
       const v = inp.value.trim(); if (!v) return;
       if (!catalogo[tipo].some(x => normCat(x) === normCat(v))) catalogo[tipo].push(v);
-      inp.value = ""; salvarCatalogo(); renderCatalogo();
+      inp.value = ""; salvarTaxonomia(); renderCatalogo();
     }
     function removerTax(tipo, i) {
       if (!confirm(`Excluir “${catalogo[tipo][i]}”?`)) return;
-      catalogo[tipo].splice(i, 1); salvarCatalogo(); renderCatalogo();
+      catalogo[tipo].splice(i, 1); salvarTaxonomia(); renderCatalogo();
     }
     function abrirProduto(id) {
       prodEditId = id || null;
@@ -1311,6 +1337,14 @@
         el("prodImgStatus").textContent = "Imagem enviada ✓";
       } catch (e) { el("prodImgStatus").textContent = "Erro: " + e.message; }
     }
+    async function apiCat(url, body) {
+      const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const d = await res.json(); if (!d.ok) throw new Error(d.erro || "falha");
+    }
+    async function salvarProdutoServidor(p) { try { await apiCat("/api/catalogo/produto", { produto: p }); } catch (e) { alert("Erro ao salvar produto: " + e.message); } }
+    async function removerProdutoServidor(id) { try { await apiCat("/api/catalogo/produto/remover", { id }); } catch (e) { alert("Erro ao excluir: " + e.message); } }
+    async function salvarTaxonomia() { try { await apiCat("/api/catalogo/taxonomia", { grupos: catalogo.grupos, subgrupos: catalogo.subgrupos, especificacoes: catalogo.especificacoes }); } catch (e) { alert("Erro ao salvar: " + e.message); } }
+
     async function salvarProduto() {
       const nome = el("prodNome").value.trim();
       if (!nome) { alert("Informe o nome do produto."); return; }
@@ -1321,28 +1355,22 @@
         subgrupos: coletarChecks("prodSubgrupos"), especificacoes: coletarChecks("prodEspec"),
         ativo: el("prodAtivo").checked,
       };
-      if (prodEditId) { Object.assign(catalogo.produtos.find(x => x.id === prodEditId), dados); }
+      if (prodEditId) { dados.id = prodEditId; const i = catalogo.produtos.findIndex(x => x.id === prodEditId); if (i > -1) catalogo.produtos[i] = dados; }
       else { dados.id = "p" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); catalogo.produtos.unshift(dados); }
-      await salvarCatalogo(); fecharProduto(); renderCatalogo();
+      await salvarProdutoServidor(dados); fecharProduto(); renderProdutos();
     }
     function duplicarProduto(id) {
       const p = catalogo.produtos.find(x => x.id === id); if (!p) return;
       const c = JSON.parse(JSON.stringify(p));
       c.id = "p" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
       c.nome = p.nome + " (cópia)";
-      catalogo.produtos.unshift(c); salvarCatalogo(); renderCatalogo();
+      catalogo.produtos.unshift(c); salvarProdutoServidor(c); renderProdutos();
     }
     function excluirProduto(id) {
       const p = catalogo.produtos.find(x => x.id === id); if (!p) return;
       if (!confirm(`Excluir o produto “${p.nome}”?`)) return;
       catalogo.produtos = catalogo.produtos.filter(x => x.id !== id);
-      salvarCatalogo(); renderCatalogo();
-    }
-    async function salvarCatalogo() {
-      try {
-        const res = await fetch("/api/catalogo", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(catalogo) });
-        const d = await res.json(); if (!d.ok) throw new Error(d.erro || "falha");
-      } catch (e) { alert("Erro ao salvar o catálogo: " + e.message); }
+      removerProdutoServidor(id); renderProdutos();
     }
 
     // ===== Liga/desliga do bot =====
