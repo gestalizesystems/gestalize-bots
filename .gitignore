@@ -7,6 +7,9 @@ node_modules/
 
 # Conta do painel (e-mail + senha com hash) — fica só na máquina, não vai pro Git
 data/conta.json
+# Dados sensíveis em runtime (clientes/CRM e tokens de sessão) — não vão pro Git
+data/clientes.json
+data/sessoes.json
 
 # Arquivos do macOS
 .DS_Store

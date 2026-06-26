@@ -46,6 +46,19 @@ const TOOLS = [
         },
       },
       {
+        name: "salvar_pet",
+        description:
+          "Guarda na memória um PET do cliente (nome e raça). Chame quando o cliente informar o nome e/ou a raça do pet — especialmente em assuntos de banho, tosa ou consulta. Assim nas próximas vezes você já sabe o nome do pet.",
+        parameters: {
+          type: "object",
+          properties: {
+            nome: { type: "string", description: "Nome do pet (ex.: 'Belinha')." },
+            raca: { type: "string", description: "Raça do pet, se informada (ex.: 'Poodle', 'SRD/vira-lata')." },
+          },
+          required: ["nome"],
+        },
+      },
+      {
         name: "buscar_produtos",
         description:
           "Busca produtos no CATÁLOGO da loja. Use quando o cliente quiser comprar/ver um PRODUTO (ração, petisco, brinquedo, acessório, areia, cosmético, etc.). Antes de chamar, faça perguntas curtas para descobrir o subgrupo (ex.: cão ou gato) e a especificação (ex.: filhote/adulto, porte, linha). Passe os filtros que já souber. Apresente só o que a função retornar (não invente produtos nem preços).",
@@ -124,6 +137,10 @@ async function executarFuncao(nome, args, contactId) {
     if (contactId) clientes.salvar(contactId, { nome: args && args.nome, endereco: args && args.endereco });
     return { ok: true };
   }
+  if (nome === "salvar_pet") {
+    if (contactId && args && args.nome) clientes.salvarPet(contactId, { nome: args.nome, raca: args.raca });
+    return { ok: true };
+  }
   if (nome === "buscar_produtos") {
     return buscarProdutos(args || {});
   }
@@ -140,11 +157,15 @@ function montarContexto(cliente) {
   const n = dados.negocio;
   const g = (dados.entrega && dados.entrega.gratis) || {}; // regra de entrega grátis
   const cat = dados.catalogo || {}; // catálogo (grupos/subgrupos/especificações/produtos)
-  const linhasCliente = cliente && (cliente.nome || cliente.endereco)
+  const pets = (cliente && Array.isArray(cliente.pets) ? cliente.pets : [])
+    .map((p) => p.nome + (p.raca ? " (" + p.raca + ")" : ""))
+    .join(", ");
+  const linhasCliente = cliente && (cliente.nome || cliente.endereco || pets)
     ? "DADOS DO CLIENTE (já conhecidos — NÃO pergunte de novo, use direto):"
         + (cliente.nome ? "\nNome: " + cliente.nome : "")
         + (cliente.endereco ? "\nEndereço: " + cliente.endereco : "")
-    : "DADOS DO CLIENTE: ainda não temos o nome/endereço deste cliente.";
+        + (pets ? "\nPets: " + pets : "")
+    : "DADOS DO CLIENTE: ainda não temos o nome/endereço/pet deste cliente.";
 
   const extras = (dados.mensagensExtras || [])
     .map((x) => `- ${x.titulo}: ${(x.resposta || "").replace(/\n+/g, " ").replace(/\*/g, "")}`)
@@ -180,6 +201,7 @@ function montarContexto(cliente) {
     "REGRAS:",
     "- MEMÓRIA: o histórico da conversa inclui as escolhas que o cliente fez no MENU (ex.: o serviço de entrega) e tudo que ele já informou. NUNCA pergunte de novo algo que o cliente já escolheu ou já disse — use o que já está na conversa. Ex.: se ele escolheu 'Entrega (moto)' no menu e mandou o endereço, calcule direto, sem perguntar o serviço outra vez.",
     "- CLIENTE (memória entre conversas): se a seção DADOS DO CLIENTE já tiver o nome ou o endereço, USE-os e NÃO pergunte de novo (nem em conversas futuras). Sempre que o cliente informar o NOME ou um ENDEREÇO, CHAME a função salvar_dados_cliente para guardar. No primeiro atendimento, se ainda não souber o nome, pode perguntar de forma simpática uma única vez.",
+    "- PET (banho/tosa/consulta): quando o assunto for banho, tosa ou consulta e você ainda NÃO souber o pet do cliente (seção DADOS DO CLIENTE), pergunte o NOME e a RAÇA do pet e CHAME salvar_pet para guardar. Se você JÁ souber o pet (ex.: 'Belinha'), use o nome dele e seja mais simpático — ex.: 'Quer agendar o banho da Belinha pra amanhã? 🐾'. Não pergunte de novo o que já sabe.",
     "- Responda APENAS com base nas informações acima. Não invente preços, serviços, horários ou taxas.",
     "- Se a pergunta for sobre algo que você não tem (ex.: preço específico, disponibilidade, caso clínico), diga que vai verificar com um atendente e peça os dados necessários.",
     "- Nunca dê diagnóstico ou orientação médica veterinária; em emergências, oriente a ligar para o telefone do negócio.",

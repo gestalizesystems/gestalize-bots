@@ -44,6 +44,25 @@ function salvar(telefone, dados = {}) {
   return atual;
 }
 
+// Salva/atualiza um PET do cliente (por nome). Usado pelo bot.
+function salvarPet(telefone, { nome, raca } = {}) {
+  if (!telefone || !nome || !String(nome).trim()) return null;
+  const atual = clientes[telefone] || { telefone, criadoEm: Date.now() };
+  if (!Array.isArray(atual.pets)) atual.pets = [];
+  const n = String(nome).trim();
+  const existente = atual.pets.find((p) => (p.nome || "").toLowerCase() === n.toLowerCase());
+  if (existente) {
+    if (raca != null && String(raca).trim()) existente.raca = String(raca).trim();
+  } else {
+    atual.pets.push({ nome: n, raca: raca ? String(raca).trim() : "" });
+  }
+  atual.telefone = telefone;
+  atual.atualizadoEm = Date.now();
+  clientes[telefone] = atual;
+  persistir();
+  return atual;
+}
+
 // Edição manual pelo painel (sobrescreve, inclusive permitindo limpar um campo).
 function definir(telefone, dados = {}) {
   if (!telefone) return null;
@@ -51,6 +70,11 @@ function definir(telefone, dados = {}) {
   ["nome", "endereco"].forEach((k) => {
     if (dados[k] != null) atual[k] = String(dados[k]).trim();
   });
+  if (Array.isArray(dados.pets)) {
+    atual.pets = dados.pets
+      .filter((p) => p && String(p.nome || "").trim())
+      .map((p) => ({ nome: String(p.nome).trim(), raca: String(p.raca || "").trim() }));
+  }
   atual.telefone = telefone;
   atual.atualizadoEm = Date.now();
   clientes[telefone] = atual;
@@ -68,4 +92,4 @@ function listar() {
   return Object.values(clientes).sort((a, b) => (b.atualizadoEm || 0) - (a.atualizadoEm || 0));
 }
 
-module.exports = { get, salvar, definir, remover, listar };
+module.exports = { get, salvar, salvarPet, definir, remover, listar };

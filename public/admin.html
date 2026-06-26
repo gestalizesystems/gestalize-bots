@@ -646,6 +646,7 @@
             <label>Nome</label><input type="text" id="cliNome" />
             <label>Telefone (com DDD, só números — ex.: 5585999999999)</label><input type="text" id="cliTelefone" />
             <label>Endereço</label><textarea id="cliEndereco"></textarea>
+            <label>Pets (um por linha — Nome, Raça)</label><textarea id="cliPets" placeholder="Belinha, Poodle&#10;Rex, Vira-lata"></textarea>
             <div class="modal-acoes">
               <button class="btn-sec" onclick="fecharCliente()">Cancelar</button>
               <button class="btn-primary" onclick="salvarCliente()">Salvar</button>
@@ -1343,6 +1344,7 @@
             <div class="pnome">${esc(c.nome || "(sem nome)")}</div>
             <div class="pcod" style="font-size:12px;color:var(--suave);font-weight:600">📞 ${esc(c.telefone || "")}</div>
             <div class="pdesc">📍 ${esc(c.endereco || "(sem endereço)")}</div>
+            ${(c.pets && c.pets.length) ? `<div class="pdesc">🐾 ${c.pets.map(p => esc(p.nome) + (p.raca ? " (" + esc(p.raca) + ")" : "")).join(", ")}</div>` : ""}
           </div>
           <div class="pacoes">
             <button class="iconbtn" title="Editar" onclick="abrirCliente('${esc(c.telefone)}')">✏️</button>
@@ -1359,14 +1361,19 @@
       el("cliTelefone").value = c ? (c.telefone || "") : "";
       el("cliTelefone").disabled = !!c; // telefone é a chave: não muda na edição
       el("cliEndereco").value = c ? (c.endereco || "") : "";
+      el("cliPets").value = c && Array.isArray(c.pets) ? c.pets.map(p => p.nome + (p.raca ? ", " + p.raca : "")).join("\n") : "";
       el("modalCliente").classList.add("aberto");
     }
     function fecharCliente() { el("modalCliente").classList.remove("aberto"); }
     async function salvarCliente() {
       const telefone = (cliEditTel || el("cliTelefone").value).replace(/\D/g, "");
       if (!telefone) { alert("Informe o telefone (com DDD)."); return; }
+      const pets = el("cliPets").value.split("\n").map(l => l.trim()).filter(Boolean).map(l => {
+        const p = l.split(/[,\-–|]/).map(s => s.trim());
+        return { nome: p[0], raca: p.slice(1).join(" ").trim() };
+      }).filter(p => p.nome);
       try {
-        await apiCat("/api/clientes", { telefone, nome: el("cliNome").value.trim(), endereco: el("cliEndereco").value.trim() });
+        await apiCat("/api/clientes", { telefone, nome: el("cliNome").value.trim(), endereco: el("cliEndereco").value.trim(), pets });
         fecharCliente(); await carregarClientes();
       } catch (e) { alert("Erro ao salvar: " + e.message); }
     }
