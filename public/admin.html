@@ -175,8 +175,11 @@
     .lixeira { background: none; border: none; color: var(--vermelho); cursor: pointer; font-size: 13px; font-weight: 600; padding: 6px; }
     .taxa-linha { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
     .taxa-linha input { flex: 1; }
-    .tx-unidade { display: flex; align-items: center; gap: 5px; }
-    .tx-unidade input { width: 100%; min-width: 0; }
+    /* km/R$ dentro da própria caixa: o wrapper vira o campo, o input fica transparente */
+    .tx-unidade { display: flex; align-items: center; gap: 4px; padding: 0 11px; border: 1px solid var(--borda); border-radius: 9px; background: #fbfcfe; transition: border .15s, box-shadow .15s; }
+    .tx-unidade:focus-within { border-color: var(--navy); box-shadow: 0 0 0 3px rgba(31,58,95,.12); background: #fff; }
+    .tx-unidade input { width: 100%; min-width: 0; border: none; background: transparent; padding: 9px 0; }
+    .tx-unidade input:focus { border: none; background: transparent; box-shadow: none; }
     .tx-sufixo, .tx-prefixo { color: var(--suave); font-weight: 700; font-size: 13px; flex: 0 0 auto; }
 
     button.add { background: #fff; border: 1px dashed var(--navy); color: var(--navy); border-radius: 9px; padding: 9px 14px; cursor: pointer; font-size: 13px; font-weight: 600; }
@@ -1050,8 +1053,8 @@
       const km = (t.ate_km === null || t.ate_km === undefined) ? "" : t.ate_km;
       div.innerHTML = `
         <input type="text" class="tx_servico" list="servicos_entrega" placeholder="Serviço" value="${esc(t.servico || '')}" style="flex:2" />
-        <div class="tx-unidade" style="flex:0 0 80px"><input type="text" class="tx_km" placeholder="até" value="${esc(km)}" /><span class="tx-sufixo">km</span></div>
-        <div class="tx-unidade" style="flex:0 0 96px"><span class="tx-prefixo">R$</span><input type="text" class="tx_valor" placeholder="valor" value="${esc(t.valor || '')}" /></div>
+        <div class="tx-unidade" style="flex:0 0 84px"><input type="text" class="tx_km" placeholder="0" value="${esc(km)}" /><span class="tx-sufixo">km</span></div>
+        <div class="tx-unidade" style="flex:0 0 100px"><span class="tx-prefixo">R$</span><input type="text" class="tx_valor" placeholder="0,00" value="${esc(t.valor || '')}" /></div>
         <input type="text" class="tx_obs" placeholder="Obs (bairro/ref.)" value="${esc(t.obs || '')}" style="flex:1" />
         <button class="lixeira" onclick="this.closest('.taxa-linha').remove()">🗑</button>`;
       return div;
