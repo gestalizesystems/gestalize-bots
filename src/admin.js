@@ -10,6 +10,7 @@ const conta = require("./conta");
 const estado = require("./estado");
 const conversa = require("./conversa");
 const clientes = require("./clientes");
+const nps = require("./nps");
 
 const PUBLIC_DIR = path.join(__dirname, "..", "public");
 // Em produção (Railway) as imagens vão para o Volume persistente; local usa public/uploads.
@@ -313,6 +314,13 @@ function iniciarAdmin(porta) {
       res.status(400).json({ ok: false, erro: e.message });
     }
   });
+  // ---- NPS (satisfação) ----
+  app.get("/api/nps", (req, res) => {
+    const dias = Math.max(1, Math.min(365, Number(req.query.dias) || 90));
+    const desde = Date.now() - dias * 24 * 60 * 60 * 1000;
+    res.json({ ok: true, resumo: nps.resumo(desde), respostas: nps.listar(20) });
+  });
+
   app.post("/api/clientes/remover", (req, res) => {
     try {
       clientes.remover(String((req.body && req.body.telefone) || "").replace(/\D/g, ""));

@@ -5,6 +5,7 @@ const { triar, menuPrincipal } = require("./triage");
 const { responder, limparHistorico, registrarTurno } = require("./ai");
 const config = require("./config");
 const clientes = require("./clientes");
+const nps = require("./nps");
 
 let enviar = async () => {}; // texto — definido pelo ponto de entrada (Cloud API)
 let enviarImagem = async () => {}; // imagem (link + legenda)
@@ -41,6 +42,7 @@ const aguardandoFecho = new Map(); // contactId -> { timer }
 const menuContexto = new Map(); // contactId -> opções do menu atual
 const jaSaudou = new Set(); // contatos que já receberam o menu de saudação nesta conversa
 const aguardandoNome = new Set(); // contatos a quem o bot perguntou o nome e espera a resposta
+const aguardandoNps = new Set(); // contatos a quem o bot perguntou a nota (NPS) e espera a resposta
 const ausenciaEnviada = new Map(); // contactId -> instante do último aviso de ausência
 const AUSENCIA_THROTTLE_MS = 60 * 60 * 1000; // não repete a ausência mais de 1x/h por contato
 
@@ -73,6 +75,28 @@ function extrairNome(texto) {
   const nome = palavras.join(" ");
   if (nome.length < 2 || nome.length > 40) return "";
   return palavras.map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+}
+
+// Despedida/agradecimento CLARO (encerra o atendimento). Mais forte que ehFecho (não pega "ok"/"blz").
+const DESPEDIDA = ["obrigado", "obrigada", "obg", "brigado", "brigada", "vlw", "valeu", "tchau", "ate mais", "ate logo", "ate breve", "era isso", "era so isso", "so isso", "so isso mesmo", "agradecido", "agradecida", "grato", "grata", "nada mais"];
+function ehDespedidaForte(t) {
+  const n = normaliza(t);
+  if (!n || n.length > 22) return false;
+  return DESPEDIDA.some((p) => n === p || n.includes(p));
+}
+
+// Envia o encerramento e, se elegível (1x/7 dias), faz a pergunta de NPS (nota 0–10).
+async function encerrarComNps(from, msgPadrao) {
+  if (nps.podePerguntar(from)) {
+    nps.marcarPerguntado(from);
+    aguardandoNps.add(from);
+    const cli = clientes.get(from);
+    const nm = cli && cli.nome ? cli.nome + ", de " : "De ";
+    const nomeLoja = config.get().negocio.nome || "a loja";
+    await enviar(from, `${msgPadrao}\n\n${nm}0 a 10, o quanto você recomendaria a *${nomeLoja}* a um amigo? 🐾`);
+  } else {
+    await enviar(from, msgPadrao);
+  }
 }
 
 // Verdadeiro se, AGORA, a loja está fora do horário de atendimento do bot.
@@ -130,6 +154,7 @@ async function finalizar(contactId, enviarDespedida) {
   menuContexto.delete(contactId);
   jaSaudou.delete(contactId); // conversa nova → pode saudar de novo
   aguardandoNome.delete(contactId);
+  aguardandoNps.delete(contactId);
   limparHistorico(contactId);
   if (enviarDespedida) {
     try {
@@ -145,6 +170,23 @@ async function processar(from, texto, nomeWpp) {
   const dados = config.get();
   // Bot desligado no painel → não responde nada.
   if (!dados.botAtivo) return;
+
+  // Resposta da pesquisa de satisfação (NPS): cliente manda a nota 0–10.
+  if (aguardandoNps.has(from)) {
+    aguardandoNps.delete(from);
+    const m = String(texto).match(/\b(10|[0-9])\b/);
+    if (m) {
+      const nota = nps.registrar(from, Number(m[1]));
+      if (nota <= 6) {
+        await enviar(from, "Poxa, sentimos muito! 😔 Vou pedir pra um atendente te ouvir pra a gente melhorar. 🐾");
+        pausar(from); // encaminha pra um humano ouvir o detrator
+      } else {
+        await enviar(from, "Obrigada pela sua avaliação! 🐾 Significa muito pra gente. 💛");
+      }
+      return;
+    }
+    // não veio uma nota → segue o fluxo normal (não trava o atendimento)
+  }
 
   // Fora do horário → só a mensagem de ausência (sem menu/saudação/IA), no máximo 1x/h.
   if (foraDoHorario(dados)) {
@@ -170,10 +212,17 @@ async function processar(from, texto, nomeWpp) {
   if (aguardandoFecho.has(from)) {
     if (ehFecho(texto)) {
       await finalizar(from, false);
-      await enviar(from, "Atendimento finalizado, qualquer coisa é só chamar! 🐾");
+      await encerrarComNps(from, "Atendimento finalizado, qualquer coisa é só chamar! 🐾");
       return;
     }
     await finalizar(from, false); // trouxe algo novo → começa um atendimento novo
+  }
+
+  // Cliente se despediu/agradeceu (ex.: "obrigada", "era só isso") → encerra e pede a nota (NPS).
+  if (ehDespedidaForte(texto)) {
+    await finalizar(from, false);
+    await encerrarComNps(from, "Por nada, qualquer coisa é só chamar! 🐾");
+    return;
   }
 
   // O bot perguntou o nome e o cliente respondeu → guarda e manda a saudação personalizada.

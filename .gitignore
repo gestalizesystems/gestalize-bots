@@ -10,6 +10,7 @@ data/conta.json
 # Dados sensíveis em runtime (clientes/CRM e tokens de sessão) — não vão pro Git
 data/clientes.json
 data/sessoes.json
+data/nps.json
 
 # Arquivos do macOS
 .DS_Store

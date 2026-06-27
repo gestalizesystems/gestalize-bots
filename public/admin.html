@@ -467,6 +467,11 @@
               <div id="dashStatus"></div>
             </div>
           </div>
+
+          <div class="bloco" style="margin-top:18px">
+            <div class="cab"><h3>⭐ Satisfação dos clientes (NPS)</h3></div>
+            <div id="dashNps"></div>
+          </div>
         </div>
 
         <section class="card page" id="page-negocio">
@@ -1172,7 +1177,29 @@
         <path d="${path(automaticas)}" fill="none" stroke="#2563eb" stroke-width="2.2"/>
         <path d="${path(transferidas)}" fill="none" stroke="#7c3aed" stroke-width="2.2"/>${xl}</svg>`;
     }
-    function renderDashboard() { if (!cfg) return; renderKpis(); renderTempoReal(); renderServicos(); renderStatus(); renderGrafico(); }
+    async function renderNps() {
+      let d = { resumo: { total: 0 } };
+      try { d = await (await fetch("/api/nps?dias=90")).json(); } catch (_) {}
+      const r = d.resumo || { total: 0 };
+      if (!r.total) { el("dashNps").innerHTML = '<p class="dica">Ainda sem avaliações. O bot pede a nota (0–10) automaticamente quando o atendimento encerra.</p>'; return; }
+      const corScore = r.score >= 50 ? "#16a34a" : (r.score >= 0 ? "#ea580c" : "#dc2626");
+      const barra = (rot, n, cor) => {
+        const pct = Math.round((n / r.total) * 100);
+        return `<div style="display:flex;align-items:center;gap:8px;margin:5px 0">
+          <div style="width:140px;font-size:13px;color:#334155">${rot}</div>
+          <div style="flex:1;height:9px;background:#f1f5f9;border-radius:6px;overflow:hidden"><div style="width:${pct}%;height:100%;background:${cor}"></div></div>
+          <div style="width:62px;text-align:right;font-size:12px;color:var(--suave)">${n} · ${pct}%</div></div>`;
+      };
+      el("dashNps").innerHTML = `
+        <div style="display:flex;gap:22px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+          <div style="text-align:center"><div style="font-size:38px;font-weight:800;color:${corScore};line-height:1">${r.score}</div><div style="font-size:11px;color:var(--suave)">NPS (−100 a 100)</div></div>
+          <div style="font-size:13px;color:var(--suave)"><b>${r.total}</b> avaliações · média <b>${r.media}</b> · últimos 90 dias</div>
+        </div>
+        ${barra("😍 Promotores (9–10)", r.promotores, "#16a34a")}
+        ${barra("😐 Neutros (7–8)", r.neutros, "#ea580c")}
+        ${barra("😞 Detratores (0–6)", r.detratores, "#dc2626")}`;
+    }
+    function renderDashboard() { if (!cfg) return; renderKpis(); renderTempoReal(); renderServicos(); renderStatus(); renderGrafico(); renderNps(); }
     function toggleData() { const p = el("dataPop"); p.style.display = p.style.display === "block" ? "none" : "block"; }
     function fmtData(s) { const p = s.split("-"); return p[2] + "/" + p[1] + "/" + p[0]; }
     function fmtCurta(s) { const p = s.split("-"); return p[2] + "/" + p[1]; }
