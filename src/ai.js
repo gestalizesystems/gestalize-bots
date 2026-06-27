@@ -9,6 +9,7 @@ const { GoogleGenAI } = require("@google/genai");
 const config = require("./config");
 const geo = require("./geo");
 const clientes = require("./clientes");
+const equipe = require("./equipe");
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 const MODELO = process.env.GEMINI_MODEL || "gemini-2.5-flash";
@@ -193,6 +194,11 @@ function montarContexto(cliente) {
     "- ENDEREÇO: sempre que informar o endereço da loja, INCLUA o link do Google Maps acima (o endereço sozinho leva o cliente pro lugar errado). NUNCA use restaurante (ex.: 'em frente ao restaurante Fogo & Brasa') como ponto de referência.",
     "",
     linhasCliente,
+    "",
+    equipe.resumoParaIA()
+      ? "NOSSA EQUIPE (reconheça quando o cliente perguntar por uma pessoa pelo nome ou por uma função, ex.: 'a Dra. Ana está?', 'tem veterinário?'):\n" + equipe.resumoParaIA()
+        + "\nSe o colaborador existe, confirme que faz parte da equipe e, se o cliente quiser falar/agendar com ele, use encaminhar_para_atendente. Se a pessoa NÃO estiver na lista, diga gentilmente que não temos esse nome na equipe."
+      : "",
     "",
     "SERVIÇOS E INFORMAÇÕES:",
     linhasServicos,

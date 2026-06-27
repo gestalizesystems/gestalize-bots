@@ -69,7 +69,7 @@ function salvarPet(telefone, { nome, raca } = {}) {
 function definir(telefone, dados = {}) {
   if (!telefone) return null;
   const atual = clientes[telefone] || { telefone, criadoEm: Date.now() };
-  ["nome", "endereco", "notas", "etapa"].forEach((k) => {
+  ["nome", "endereco", "notas", "etapa", "cpf"].forEach((k) => {
     if (dados[k] != null) atual[k] = String(dados[k]).trim();
   });
   if (Array.isArray(dados.tags)) {

@@ -391,6 +391,7 @@
         <a class="nav-item" data-target="page-entrega" data-titulo="Taxas e serviços" data-sub="Entrega e Táxi Dog, com cálculo por distância."><span class="ic">🛵</span> Taxas e serviços</a>
         <a class="nav-item" data-target="page-catalogo" data-titulo="Catálogo" data-sub="Produtos, grupos e subgrupos que o bot envia aos clientes."><span class="ic">🛍️</span> Catálogo</a>
         <a class="nav-item" data-target="page-clientes" data-titulo="Clientes" data-sub="Memória do bot: nome, telefone e endereço de cada cliente."><span class="ic">👥</span> Clientes</a>
+        <a class="nav-item" data-target="page-equipe" data-titulo="Equipe" data-sub="Colaboradores que o bot reconhece (por nome ou função)."><span class="ic">👨‍⚕️</span> Equipe</a>
         <a class="nav-item" data-target="page-satisfacao" data-titulo="Satisfação (NPS)" data-sub="Avaliações dos clientes e comentários."><span class="ic">⭐</span> Satisfação</a>
         <a class="nav-item" data-target="page-campanhas" data-titulo="Campanhas" data-sub="Mensagens ativas para grupos de clientes."><span class="ic">📢</span> Campanhas</a>
         <a class="nav-item" data-target="page-gatilhos" data-titulo="Palavras-chave gerais" data-sub="Atalhos para o bot entender comandos importantes."><span class="ic">⚙️</span> Palavras-chave</a>
@@ -673,6 +674,7 @@
             <h3 id="cliModalTitulo" style="margin:0 0 16px">Cliente</h3>
             <label>Nome</label><input type="text" id="cliNome" />
             <label>Telefone (com DDD, só números — ex.: 5585999999999)</label><input type="text" id="cliTelefone" oninput="mascaraTel(this)" />
+            <label>CPF</label><input type="text" id="cliCpf" oninput="mascaraCpf(this)" placeholder="000.000.000-00" />
             <label>Endereço</label><textarea id="cliEndereco"></textarea>
             <label>Pets (um por linha — Nome, Raça)</label><textarea id="cliPets" placeholder="Belinha, Poodle&#10;Rex, Vira-lata"></textarea>
             <label>Etapa do funil</label>
@@ -687,6 +689,34 @@
             <div class="modal-acoes">
               <button class="btn-sec" onclick="fecharCliente()">Cancelar</button>
               <button class="btn-primary" onclick="salvarCliente()">Salvar</button>
+            </div>
+          </div>
+        </div>
+
+        <section class="card page" id="page-equipe">
+          <h2>👨‍⚕️ Equipe</h2>
+          <p class="dica">Cadastre os colaboradores (com a função). O bot usa isso pra reconhecer quando o cliente pergunta por uma pessoa pelo <b>nome</b> (ex.: "a Dra. Ana está?") ou pela <b>função</b> (ex.: "tem veterinário?") e responder do jeito certo.</p>
+          <div class="cat-topo">
+            <input class="busca" id="eqBusca" placeholder="🔎 Buscar (nome ou função)..." oninput="eqPagina=1;renderEquipe()" />
+            <button class="btn-primary" onclick="abrirMembro()">+ Adicionar colaborador</button>
+          </div>
+          <div id="listaEquipe"></div>
+          <div id="eqPager" class="catpager"></div>
+        </section>
+
+        <div class="modal-bg" id="modalMembro">
+          <div class="modal">
+            <h3 id="eqModalTitulo" style="margin:0 0 16px">Colaborador</h3>
+            <label>Nome</label><input type="text" id="eqNome" placeholder="ex.: Dra. Ana Souza" />
+            <label>Função / cargo</label><input type="text" id="eqCargo" list="cargosSugeridos" placeholder="ex.: Veterinária" />
+            <datalist id="cargosSugeridos">
+              <option>Veterinário(a)</option><option>Banhista / Tosador(a)</option><option>Atendente</option>
+              <option>Gerente</option><option>Recepcionista</option><option>Auxiliar</option>
+            </datalist>
+            <label>Observação (opcional — especialidade, horário...)</label><textarea id="eqObs" placeholder="ex.: Atende de segunda a sexta, à tarde."></textarea>
+            <div class="modal-acoes">
+              <button class="btn-sec" onclick="fecharMembro()">Cancelar</button>
+              <button class="btn-primary" onclick="salvarMembro()">Salvar</button>
             </div>
           </div>
         </div>
@@ -831,6 +861,13 @@
       const v = elx.value.replace(/\D/g, "").slice(0, 8);
       elx.value = v.length > 5 ? v.slice(0, 5) + "-" + v.slice(5) : v;
     }
+    function mascaraCpf(elx) {
+      let v = elx.value.replace(/\D/g, "").slice(0, 11), r = v;
+      if (v.length > 9) r = v.slice(0, 3) + "." + v.slice(3, 6) + "." + v.slice(6, 9) + "-" + v.slice(9);
+      else if (v.length > 6) r = v.slice(0, 3) + "." + v.slice(3, 6) + "." + v.slice(6);
+      else if (v.length > 3) r = v.slice(0, 3) + "." + v.slice(3);
+      elx.value = r;
+    }
     function flash(msg, cls) { const s = el("status"); s.textContent = msg; s.className = cls || ""; if (cls === "ok") setTimeout(() => { if (s.className === "ok") s.textContent = ""; }, 5000); }
 
     // ===== Logo =====
@@ -886,6 +923,7 @@
         el("topSub").textContent = navEl.dataset.sub || "";
       }
       if (id === "page-clientes") carregarClientes();
+      if (id === "page-equipe") carregarEquipe();
       if (id === "page-satisfacao") carregarSatisfacao();
       if (id === "page-atendimentos") carregarAtendimentos();
       if (id === "page-campanhas") { campRenderAudValor(); campToggleModo(); carregarCampanhas(); campContar(); }
@@ -1435,7 +1473,7 @@
           <div class="semimg">👤</div>
           <div class="pinfo">
             <div class="pnome">${esc(c.nome || "(sem nome)")} <span style="background:${et.bg};color:${et.cor};font-size:11px;font-weight:700;padding:2px 7px;border-radius:7px">${et.rot}</span></div>
-            <div class="pcod" style="font-size:12px;color:var(--suave);font-weight:600">📞 ${esc(c.telefone || "")}</div>
+            <div class="pcod" style="font-size:12px;color:var(--suave);font-weight:600">📞 ${esc(c.telefone || "")}${c.cpf ? " · 🪪 " + esc(c.cpf) : ""}</div>
             <div class="pdesc">📍 ${esc(c.endereco || "(sem endereço)")}</div>
             ${(c.pets && c.pets.length) ? `<div class="pdesc">🐾 ${c.pets.map(p => esc(p.nome) + (p.raca ? " (" + esc(p.raca) + ")" : "")).join(", ")}</div>` : ""}
             ${(c.tags && c.tags.length) ? `<div class="chips" style="margin-top:4px">${c.tags.map(t => `<span class="chipg">${esc(t)}</span>`).join("")}</div>` : ""}
@@ -1456,6 +1494,7 @@
       el("cliNome").value = c ? (c.nome || "") : "";
       el("cliTelefone").value = c ? (c.telefone || "") : "";
       el("cliTelefone").disabled = !!c; // telefone é a chave: não muda na edição
+      el("cliCpf").value = (c && c.cpf) || "";
       el("cliEndereco").value = c ? (c.endereco || "") : "";
       el("cliPets").value = c && Array.isArray(c.pets) ? c.pets.map(p => p.nome + (p.raca ? ", " + p.raca : "")).join("\n") : "";
       el("cliEtapa").value = (c && c.etapa) || "lead";
@@ -1473,7 +1512,7 @@
       }).filter(p => p.nome);
       const tags = el("cliTags").value.split(",").map(t => t.trim()).filter(Boolean);
       try {
-        await apiCat("/api/clientes", { telefone, nome: el("cliNome").value.trim(), endereco: el("cliEndereco").value.trim(), pets, tags, notas: el("cliNotas").value.trim(), etapa: el("cliEtapa").value });
+        await apiCat("/api/clientes", { telefone, nome: el("cliNome").value.trim(), cpf: el("cliCpf").value.trim(), endereco: el("cliEndereco").value.trim(), pets, tags, notas: el("cliNotas").value.trim(), etapa: el("cliEtapa").value });
         fecharCliente(); await carregarClientes();
       } catch (e) { alert("Erro ao salvar: " + e.message); }
     }
@@ -1481,6 +1520,59 @@
       const c = clientesLista.find(x => x.telefone === tel);
       if (!confirm(`Excluir o cliente ${c && c.nome ? "“" + c.nome + "”" : tel}?`)) return;
       try { await apiCat("/api/clientes/remover", { telefone: tel }); await carregarClientes(); }
+      catch (e) { alert("Erro ao excluir: " + e.message); }
+    }
+
+    // ===== Equipe / colaboradores =====
+    let equipeLista = [], eqPagina = 1, eqEditId = null;
+    async function carregarEquipe() {
+      try { const d = await (await fetch("/api/equipe")).json(); equipeLista = d.equipe || []; renderEquipe(); }
+      catch (_) { el("listaEquipe").innerHTML = '<p class="dica">Erro ao carregar a equipe.</p>'; }
+    }
+    function eqIrPagina(n) { eqPagina = n; renderEquipe(); const c = el("listaEquipe"); if (c) c.scrollIntoView({ block: "start" }); }
+    function renderEquipe() {
+      const q = normCat(el("eqBusca").value);
+      const lista = equipeLista.filter(m => !q || normCat((m.nome || "") + " " + (m.cargo || "") + " " + (m.obs || "")).includes(q));
+      if (!lista.length) { el("listaEquipe").innerHTML = `<p class="dica">${equipeLista.length ? "Nenhum colaborador encontrado." : "Nenhum colaborador ainda. Clique em “Adicionar colaborador”."}</p>`; el("eqPager").innerHTML = ""; return; }
+      const POR = 15, total = lista.length, totalPags = Math.ceil(total / POR);
+      eqPagina = Math.min(Math.max(1, eqPagina), totalPags || 1);
+      const ini = (eqPagina - 1) * POR;
+      el("listaEquipe").innerHTML = lista.slice(ini, ini + POR).map(m => `
+        <div class="prod">
+          <div class="semimg">👤</div>
+          <div class="pinfo">
+            <div class="pnome">${esc(m.nome)}${m.cargo ? ` <span style="background:#dbeafe;color:#2563eb;font-size:11px;font-weight:700;padding:2px 7px;border-radius:7px">${esc(m.cargo)}</span>` : ""}</div>
+            ${m.obs ? `<div class="pdesc">${esc(m.obs)}</div>` : ""}
+          </div>
+          <div class="pacoes">
+            <button class="iconbtn" title="Editar" onclick="abrirMembro('${m.id}')">✏️</button>
+            <button class="iconbtn del" title="Excluir" onclick="excluirMembro('${m.id}')">🗑️</button>
+          </div>
+        </div>`).join("");
+      el("eqPager").innerHTML = montarPager(eqPagina, totalPags, total, "eqIrPagina", "colaboradores");
+    }
+    function abrirMembro(id) {
+      const m = id ? equipeLista.find(x => x.id === id) : null;
+      eqEditId = id || null;
+      el("eqModalTitulo").textContent = m ? "Editar colaborador" : "Novo colaborador";
+      el("eqNome").value = m ? (m.nome || "") : "";
+      el("eqCargo").value = m ? (m.cargo || "") : "";
+      el("eqObs").value = m ? (m.obs || "") : "";
+      el("modalMembro").classList.add("aberto");
+    }
+    function fecharMembro() { el("modalMembro").classList.remove("aberto"); }
+    async function salvarMembro() {
+      const nome = el("eqNome").value.trim();
+      if (!nome) { alert("Informe o nome do colaborador."); return; }
+      try {
+        await apiCat("/api/equipe", { id: eqEditId, nome, cargo: el("eqCargo").value.trim(), obs: el("eqObs").value.trim() });
+        fecharMembro(); await carregarEquipe();
+      } catch (e) { alert("Erro ao salvar: " + e.message); }
+    }
+    async function excluirMembro(id) {
+      const m = equipeLista.find(x => x.id === id);
+      if (!confirm(`Excluir ${m && m.nome ? "“" + m.nome + "”" : "este colaborador"}?`)) return;
+      try { await apiCat("/api/equipe/remover", { id }); await carregarEquipe(); }
       catch (e) { alert("Erro ao excluir: " + e.message); }
     }
 

@@ -12,6 +12,7 @@ const conversa = require("./conversa");
 const clientes = require("./clientes");
 const nps = require("./nps");
 const atendimentos = require("./atendimentos");
+const equipe = require("./equipe");
 const metricas = require("./metricas");
 const campanhas = require("./campanhas");
 const wa = require("./wa");
@@ -331,10 +332,10 @@ function iniciarAdmin(porta) {
   app.get("/api/clientes", (req, res) => res.json({ ok: true, clientes: clientes.listar() }));
   app.post("/api/clientes", (req, res) => {
     try {
-      const { telefone, nome, endereco, pets, tags, notas, etapa } = req.body || {};
+      const { telefone, nome, endereco, pets, tags, notas, etapa, cpf } = req.body || {};
       const tel = String(telefone || "").replace(/\D/g, "");
       if (!tel) throw new Error("Telefone obrigatório.");
-      res.json({ ok: true, cliente: clientes.definir(tel, { nome, endereco, pets, tags, notas, etapa }) });
+      res.json({ ok: true, cliente: clientes.definir(tel, { nome, endereco, pets, tags, notas, etapa, cpf }) });
     } catch (e) {
       res.status(400).json({ ok: false, erro: e.message });
     }
@@ -357,6 +358,20 @@ function iniciarAdmin(porta) {
   app.post("/api/atendimentos/resolver", (req, res) => {
     atendimentos.resolver((req.body && req.body.id) || "");
     res.json({ ok: true, pendentes: atendimentos.pendentes() });
+  });
+
+  // ---- Equipe / colaboradores ----
+  app.get("/api/equipe", (req, res) => res.json({ ok: true, equipe: equipe.listar() }));
+  app.post("/api/equipe", (req, res) => {
+    try {
+      const { id, nome, cargo, obs } = req.body || {};
+      if (!String(nome || "").trim()) throw new Error("Informe o nome do colaborador.");
+      res.json({ ok: true, membro: equipe.salvar({ id, nome, cargo, obs }) });
+    } catch (e) { res.status(400).json({ ok: false, erro: e.message }); }
+  });
+  app.post("/api/equipe/remover", (req, res) => {
+    equipe.remover((req.body && req.body.id) || "");
+    res.json({ ok: true, equipe: equipe.listar() });
   });
 
   // ---- Métricas reais (dashboard) ----
