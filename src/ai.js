@@ -102,6 +102,7 @@ function buscarProdutos({ grupo, subgrupo, especificacao, texto } = {}) {
   const cat = config.get().catalogo || {};
   const produtos = (cat.produtos || []).filter((p) => p && p.ativo !== false);
   const g = norm(grupo), sg = norm(subgrupo), esp = norm(especificacao), tx = norm(texto);
+  const palavrasTx = tx.split(/\s+/).filter(Boolean); // texto livre casa por PALAVRA (qualquer ordem)
   const casa = (valor, alvo) => valor && (norm(valor).includes(alvo) || alvo.includes(norm(valor)));
   const casaLista = (lista, alvo) => Array.isArray(lista) && lista.some((x) => casa(x, alvo));
 
@@ -109,7 +110,10 @@ function buscarProdutos({ grupo, subgrupo, especificacao, texto } = {}) {
     if (g && !casa(p.grupo, g)) return false;
     if (sg && !casaLista(p.subgrupos, sg)) return false;
     if (esp && !casaLista(p.especificacoes, esp)) return false;
-    if (tx && !(norm(p.nome).includes(tx) || norm(p.descricao).includes(tx))) return false;
+    if (palavrasTx.length) {
+      const alvo = norm(p.nome) + " " + norm(p.descricao);
+      if (!palavrasTx.every((w) => alvo.includes(w))) return false;
+    }
     return true;
   });
 
@@ -182,9 +186,11 @@ function montarContexto(cliente) {
     "",
     "INFORMAÇÕES DO NEGÓCIO:",
     `Endereço: ${n.endereco}`,
+    n.mapsLink ? `Link do Google Maps: ${n.mapsLink}` : "",
     `Telefone: ${n.telefone}`,
     `Horário: ${n.horarioSemana}; ${n.horarioSabado}; ${n.horarioDomingo}`,
     `Pagamento: ${n.pagamento}`,
+    "- ENDEREÇO: sempre que informar o endereço da loja, INCLUA o link do Google Maps acima (o endereço sozinho leva o cliente pro lugar errado). NUNCA use restaurante (ex.: 'em frente ao restaurante Fogo & Brasa') como ponto de referência.",
     "",
     linhasCliente,
     "",

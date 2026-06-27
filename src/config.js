@@ -67,6 +67,23 @@ function migrar(d) {
     }
     d._gatilhosLimpos = true; mudou = true;
   }
+  // Endereço: garante o link do Google Maps e remove a referência ao restaurante.
+  if (!d._mapsEndereco) {
+    if (!d.negocio) d.negocio = {};
+    if (!d.negocio.mapsLink) d.negocio.mapsLink = "https://maps.app.goo.gl/CJWisnSGuaf3yCtQA";
+    (d.faqRapido || []).forEach((f) => {
+      if (/endere/i.test(f.titulo || "") && typeof f.resposta === "string") {
+        f.resposta = f.resposta
+          .replace(/\s*\(?em frente ao restaurante[^)\n]*\)?/gi, "") // tira o restaurante (e o parêntese)
+          .replace(/[ \t]+\n/g, "\n")
+          .replace(/\n{3,}/g, "\n\n");
+        if (!/maps\.app\.goo\.gl|\{maps\}/i.test(f.resposta)) {
+          f.resposta = f.resposta.replace(/(\{endereco\})/i, "$1\n🗺️ Ver no mapa: {maps}");
+        }
+      }
+    });
+    d._mapsEndereco = true; mudou = true;
+  }
   return mudou;
 }
 
@@ -94,6 +111,7 @@ function preencher(texto) {
     .replace(/{horarioSemana}/g, n.horarioSemana)
     .replace(/{horarioSabado}/g, n.horarioSabado)
     .replace(/{horarioDomingo}/g, n.horarioDomingo)
+    .replace(/{maps}/g, n.mapsLink || "")
     .replace(/{pagamento}/g, n.pagamento);
 }
 

@@ -478,6 +478,7 @@
             <div><label>Nome</label><input type="text" id="n_nome" /></div>
             <div><label>Tipo (ex.: Pet Shop e Clínica Veterinária)</label><input type="text" id="n_tipo" /></div>
             <div><label>Endereço</label><input type="text" id="n_endereco" /></div>
+            <div><label>Link do Google Maps</label><input type="text" id="n_mapsLink" placeholder="https://maps.app.goo.gl/..." /></div>
             <div><label>Telefone</label><input type="text" id="n_telefone" /></div>
             <div><label>Horário (segunda a sexta)</label><input type="text" id="n_horarioSemana" /></div>
             <div><label>Horário (sábado)</label><input type="text" id="n_horarioSabado" /></div>
@@ -912,7 +913,7 @@
       const n = cfg.negocio, m = cfg.mensagens, e = cfg.entrega;
       el("hNome").textContent = n.nome; el("botNome").textContent = n.nome;
       logoAtual = n.logo || ""; setLogo(logoAtual);
-      ["nome","tipo","endereco","telefone","horarioSemana","horarioSabado","horarioDomingo","pagamento"]
+      ["nome","tipo","endereco","mapsLink","telefone","horarioSemana","horarioSabado","horarioDomingo","pagamento"]
         .forEach(k => el("n_" + k).value = n[k] || "");
       el("n_infoIA").value = cfg.infoIA || "";
       ["saudacaoIntro","saudacaoChamada","saudacaoNome","saudacaoRodape","atendente","ausencia"].forEach(k => el("m_" + k).value = m[k] || "");
@@ -960,7 +961,7 @@
         infoIA: el("n_infoIA").value,
         menus: coletarMenus(),
       };
-      ["nome","tipo","endereco","telefone","horarioSemana","horarioSabado","horarioDomingo","pagamento"]
+      ["nome","tipo","endereco","mapsLink","telefone","horarioSemana","horarioSabado","horarioDomingo","pagamento"]
         .forEach(k => novo.negocio[k] = el("n_" + k).value.trim());
       novo.negocio.logo = logoAtual;
       ["saudacaoIntro","saudacaoChamada","saudacaoNome","saudacaoRodape","atendente","ausencia"].forEach(k => novo.mensagens[k] = el("m_" + k).value);

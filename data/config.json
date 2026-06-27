@@ -8,7 +8,8 @@
     "horarioSabado": "Sábado, das 8h às 18h",
     "horarioDomingo": "Domingo e feriados: fechado",
     "pagamento": "Dinheiro, Pix, débito e crédito (até 6x sem juros).",
-    "logo": "/uploads/logo.png"
+    "logo": "/uploads/logo.png",
+    "mapsLink": "https://maps.app.goo.gl/CJWisnSGuaf3yCtQA"
   },
   "mensagens": {
     "saudacaoIntro": "Olá! 🐾 Aqui é o atendimento da *{nome}* ({tipo}).",
@@ -73,7 +74,7 @@
         "como chegar",
         "mapa"
       ],
-      "resposta": "📍 *Onde estamos*\n\n{nome} — {endereco}\n(em frente ao restaurante Fogo & Brasa Passaré; há vagas na rua em frente)\nTelefone: {telefone}\nInstagram: @lecolandpet\n\n📌 Temos uma *filial* (vacinas, medicamentos, rações e acessórios — sem banho/tosa): Av. da Saudade, 3072, Passaré · WhatsApp (85) 98591-6238 · seg a sex 7h30–17h30."
+      "resposta": "📍 *Onde estamos*\n\n{nome} — {endereco}\n🗺️ Ver no mapa: {maps}\nTelefone: {telefone}\nInstagram: @lecolandpet\n\n📌 Temos uma *filial* (vacinas, medicamentos, rações e acessórios — sem banho/tosa): Av. da Saudade, 3072, Passaré · WhatsApp (85) 98591-6238 · seg a sex 7h30–17h30."
     },
     {
       "chave": "pagamento",
@@ -54482,5 +54483,6 @@
   },
   "_entregaSubmenu": true,
   "_gatilhosLimpos": true,
-  "_onepetImportado": true
+  "_onepetImportado": true,
+  "_mapsEndereco": true
 }
