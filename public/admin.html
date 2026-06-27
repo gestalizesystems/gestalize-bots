@@ -389,6 +389,7 @@
         <a class="nav-item" data-target="page-entrega" data-titulo="Taxas e serviços" data-sub="Entrega e Táxi Dog, com cálculo por distância."><span class="ic">🛵</span> Taxas e serviços</a>
         <a class="nav-item" data-target="page-catalogo" data-titulo="Catálogo" data-sub="Produtos, grupos e subgrupos que o bot envia aos clientes."><span class="ic">🛍️</span> Catálogo</a>
         <a class="nav-item" data-target="page-clientes" data-titulo="Clientes" data-sub="Memória do bot: nome, telefone e endereço de cada cliente."><span class="ic">👥</span> Clientes</a>
+        <a class="nav-item" data-target="page-satisfacao" data-titulo="Satisfação (NPS)" data-sub="Avaliações dos clientes e comentários."><span class="ic">⭐</span> Satisfação</a>
         <a class="nav-item" data-target="page-gatilhos" data-titulo="Palavras-chave gerais" data-sub="Atalhos para o bot entender comandos importantes."><span class="ic">⚙️</span> Palavras-chave</a>
         <a class="nav-item" data-target="page-conta" data-titulo="Configurações gerais" data-sub="Gerencie seus dados de acesso ao painel."><span class="ic">👤</span> Configurações gerais</a>
       </nav>
@@ -660,6 +661,24 @@
           </div>
         </div>
 
+        <section class="card page" id="page-satisfacao">
+          <h2>⭐ Satisfação (NPS)</h2>
+          <p class="dica">O bot pergunta a nota (0–10) e um comentário ao encerrar o atendimento. Aqui você vê o resultado.</p>
+          <div class="cat-topo">
+            <select class="cat-filtro" id="npsPeriodo" onchange="npsPagina=1;carregarSatisfacao()">
+              <option value="7">Últimos 7 dias</option>
+              <option value="30">Últimos 30 dias</option>
+              <option value="90" selected>Últimos 90 dias</option>
+              <option value="365">Último ano</option>
+              <option value="0">Tudo</option>
+            </select>
+          </div>
+          <div id="npsResumo"></div>
+          <h3 style="margin:18px 0 8px; font-size:15px; color:var(--navy)">💬 Comentários e notas</h3>
+          <div id="npsLista"></div>
+          <div id="npsPager" class="catpager"></div>
+        </section>
+
         <section class="card page" id="page-gatilhos">
           <h2>⚙️ Palavras-chave gerais</h2>
           <p class="dica">Atalhos para o bot entender comandos importantes. Digite e clique em <b>Adicionar</b> (ou Enter).</p>
@@ -776,6 +795,7 @@
         el("topSub").textContent = navEl.dataset.sub || "";
       }
       if (id === "page-clientes") carregarClientes();
+      if (id === "page-satisfacao") carregarSatisfacao();
       window.scrollTo(0, 0);
       fecharMenu(); // fecha a gaveta no mobile ao trocar de página
     }
@@ -1354,6 +1374,51 @@
       if (!confirm(`Excluir o cliente ${c && c.nome ? "“" + c.nome + "”" : tel}?`)) return;
       try { await apiCat("/api/clientes/remover", { telefone: tel }); await carregarClientes(); }
       catch (e) { alert("Erro ao excluir: " + e.message); }
+    }
+
+    // ===== Satisfação (NPS) — página dedicada =====
+    let npsRespostas = [], npsPagina = 1;
+    function corNota(n) { return n >= 9 ? "#16a34a" : (n >= 7 ? "#ea580c" : "#dc2626"); }
+    function fmtDataHora(ms) { const d = new Date(ms), p = x => String(x).padStart(2, "0"); return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`; }
+    async function carregarSatisfacao() {
+      const dias = el("npsPeriodo").value;
+      let d = { resumo: { total: 0 }, respostas: [] };
+      try { d = await (await fetch("/api/nps?dias=" + dias)).json(); } catch (_) {}
+      npsRespostas = d.respostas || [];
+      const r = d.resumo || { total: 0 };
+      if (!r.total) {
+        el("npsResumo").innerHTML = '<p class="dica">Nenhuma avaliação neste período ainda.</p>';
+      } else {
+        const corScore = r.score >= 50 ? "#16a34a" : (r.score >= 0 ? "#ea580c" : "#dc2626");
+        const barra = (rot, n, cor) => { const pct = Math.round((n / r.total) * 100); return `<div style="display:flex;align-items:center;gap:8px;margin:5px 0"><div style="width:150px;font-size:13px;color:#334155">${rot}</div><div style="flex:1;height:9px;background:#f1f5f9;border-radius:6px;overflow:hidden"><div style="width:${pct}%;height:100%;background:${cor}"></div></div><div style="width:62px;text-align:right;font-size:12px;color:var(--suave)">${n} · ${pct}%</div></div>`; };
+        el("npsResumo").innerHTML = `<div class="bloco">
+          <div style="display:flex;gap:22px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+            <div style="text-align:center"><div style="font-size:40px;font-weight:800;color:${corScore};line-height:1">${r.score}</div><div style="font-size:11px;color:var(--suave)">NPS (−100 a 100)</div></div>
+            <div style="font-size:13px;color:var(--suave)"><b>${r.total}</b> avaliações · média <b>${r.media}</b></div>
+          </div>
+          ${barra("😍 Promotores (9–10)", r.promotores, "#16a34a")}
+          ${barra("😐 Neutros (7–8)", r.neutros, "#ea580c")}
+          ${barra("😞 Detratores (0–6)", r.detratores, "#dc2626")}</div>`;
+      }
+      renderSatisfacao();
+    }
+    function satIrPagina(n) { npsPagina = n; renderSatisfacao(); const c = el("npsLista"); if (c) c.scrollIntoView({ block: "start" }); }
+    function renderSatisfacao() {
+      const lista = npsRespostas;
+      if (!lista.length) { el("npsLista").innerHTML = '<p class="dica">Sem avaliações neste período.</p>'; el("npsPager").innerHTML = ""; return; }
+      const POR = 15, total = lista.length, totalPags = Math.ceil(total / POR);
+      npsPagina = Math.min(Math.max(1, npsPagina), totalPags || 1);
+      const ini = (npsPagina - 1) * POR;
+      el("npsLista").innerHTML = lista.slice(ini, ini + POR).map(c => `
+        <div class="prod">
+          <div class="semimg" style="background:${corNota(c.nota)};color:#fff;font-weight:800;font-size:18px">${c.nota}</div>
+          <div class="pinfo">
+            <div class="pnome">${esc(c.nome || "(sem nome)")} <span style="font-size:12px;color:var(--suave);font-weight:600">📞 ${esc(c.telefone)}</span></div>
+            <div class="pdesc">${c.comentario ? "💬 " + esc(c.comentario) : '<span style="color:var(--suave)">(sem comentário)</span>'}</div>
+            <div class="pcod" style="font-size:12px;color:var(--suave)">${fmtDataHora(c.data)}</div>
+          </div>
+        </div>`).join("");
+      el("npsPager").innerHTML = montarPager(npsPagina, totalPags, total, "satIrPagina", "avaliações");
     }
     function renderTaxLista(tipo, alvo) {
       el(alvo).innerHTML = (catalogo[tipo] || []).map((v, i) =>

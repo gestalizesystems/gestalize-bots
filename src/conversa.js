@@ -43,6 +43,7 @@ const menuContexto = new Map(); // contactId -> opções do menu atual
 const jaSaudou = new Set(); // contatos que já receberam o menu de saudação nesta conversa
 const aguardandoNome = new Set(); // contatos a quem o bot perguntou o nome e espera a resposta
 const aguardandoNps = new Set(); // contatos a quem o bot perguntou a nota (NPS) e espera a resposta
+const aguardandoNpsComentario = new Map(); // contactId -> { id, detrator } esperando o comentário do NPS
 const ausenciaEnviada = new Map(); // contactId -> instante do último aviso de ausência
 const AUSENCIA_THROTTLE_MS = 60 * 60 * 1000; // não repete a ausência mais de 1x/h por contato
 
@@ -155,6 +156,7 @@ async function finalizar(contactId, enviarDespedida) {
   jaSaudou.delete(contactId); // conversa nova → pode saudar de novo
   aguardandoNome.delete(contactId);
   aguardandoNps.delete(contactId);
+  aguardandoNpsComentario.delete(contactId);
   limparHistorico(contactId);
   if (enviarDespedida) {
     try {
@@ -171,21 +173,35 @@ async function processar(from, texto, nomeWpp) {
   // Bot desligado no painel → não responde nada.
   if (!dados.botAtivo) return;
 
-  // Resposta da pesquisa de satisfação (NPS): cliente manda a nota 0–10.
+  // NPS — passo 1: cliente manda a nota 0–10 → registra e pede um comentário.
   if (aguardandoNps.has(from)) {
     aguardandoNps.delete(from);
     const m = String(texto).match(/\b(10|[0-9])\b/);
     if (m) {
-      const nota = nps.registrar(from, Number(m[1]));
-      if (nota <= 6) {
-        await enviar(from, "Poxa, sentimos muito! 😔 Vou pedir pra um atendente te ouvir pra a gente melhorar. 🐾");
-        pausar(from); // encaminha pra um humano ouvir o detrator
-      } else {
-        await enviar(from, "Obrigada pela sua avaliação! 🐾 Significa muito pra gente. 💛");
-      }
+      const { id, nota } = nps.registrar(from, Number(m[1]));
+      const detrator = nota <= 6;
+      aguardandoNpsComentario.set(from, { id, detrator });
+      await enviar(from, detrator
+        ? "Poxa, sentimos muito! 😔 O que podemos melhorar? (se preferir, mande *ok* que já chamo um atendente)"
+        : `Obrigada pela nota ${nota}! 🐾 Quer deixar um comentário? (ou mande *ok*)`);
       return;
     }
     // não veio uma nota → segue o fluxo normal (não trava o atendimento)
+  }
+
+  // NPS — passo 2: comentário (após a nota).
+  if (aguardandoNpsComentario.has(from)) {
+    const { id, detrator } = aguardandoNpsComentario.get(from);
+    aguardandoNpsComentario.delete(from);
+    const pular = /^(ok|nao|não|n|-|pular|nada|nenhum|sem coment\w*|tudo certo|tudo bem)$/i.test(String(texto).trim());
+    if (!pular) nps.comentar(id, texto);
+    if (detrator) {
+      await enviar(from, "Obrigada por compartilhar! 🐾 Vou repassar pra um atendente cuidar disso pra você.");
+      pausar(from); // ouvir o detrator
+    } else {
+      await enviar(from, "Valeu pela avaliação! 💛 Significa muito pra gente. 🐾");
+    }
+    return;
   }
 
   // Fora do horário → só a mensagem de ausência (sem menu/saudação/IA), no máximo 1x/h.

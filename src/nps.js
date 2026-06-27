@@ -39,12 +39,19 @@ function marcarPerguntado(telefone) {
   persistir();
 }
 
-// Registra uma nota (0–10). Devolve a nota normalizada.
-function registrar(telefone, nota, comentario) {
+// Registra uma nota (0–10). Devolve { id, nota } (o id permite anexar o comentário depois).
+function registrar(telefone, nota) {
   const n = Math.max(0, Math.min(10, Math.round(Number(nota))));
-  dados.respostas.push({ telefone, nota: n, comentario: comentario || "", data: Date.now() });
+  const id = "n" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+  dados.respostas.push({ id, telefone, nota: n, comentario: "", data: Date.now() });
   persistir();
-  return n;
+  return { id, nota: n };
+}
+
+// Anexa um comentário a uma resposta já registrada.
+function comentar(id, comentario) {
+  const r = dados.respostas.find((x) => x.id === id);
+  if (r) { r.comentario = String(comentario || "").trim().slice(0, 500); persistir(); }
 }
 
 // Resumo agregado (a partir de uma data, em ms). NPS = %promotores − %detratores.
@@ -59,9 +66,9 @@ function resumo(desdeMs) {
   return { total, promotores, neutros, detratores, score, media };
 }
 
-// Últimas respostas (para listar no painel).
-function listar(limite) {
-  return dados.respostas.slice().reverse().slice(0, limite || 50);
+// Respostas no período (a partir de uma data, em ms), mais recentes primeiro.
+function listar(desdeMs) {
+  return dados.respostas.filter((r) => !desdeMs || r.data >= desdeMs).slice().reverse();
 }
 
-module.exports = { podePerguntar, marcarPerguntado, registrar, resumo, listar };
+module.exports = { podePerguntar, marcarPerguntado, registrar, comentar, resumo, listar };

@@ -316,9 +316,13 @@ function iniciarAdmin(porta) {
   });
   // ---- NPS (satisfação) ----
   app.get("/api/nps", (req, res) => {
-    const dias = Math.max(1, Math.min(365, Number(req.query.dias) || 90));
-    const desde = Date.now() - dias * 24 * 60 * 60 * 1000;
-    res.json({ ok: true, resumo: nps.resumo(desde), respostas: nps.listar(20) });
+    const raw = Number(req.query.dias);
+    const desde = raw === 0 ? 0 : Date.now() - Math.max(1, Math.min(3650, raw || 90)) * 24 * 60 * 60 * 1000;
+    const respostas = nps.listar(desde).map((r) => {
+      const cli = clientes.get(r.telefone);
+      return { id: r.id, telefone: r.telefone, nome: (cli && cli.nome) || "", nota: r.nota, comentario: r.comentario || "", data: r.data };
+    });
+    res.json({ ok: true, resumo: nps.resumo(desde), respostas });
   });
 
   app.post("/api/clientes/remover", (req, res) => {
