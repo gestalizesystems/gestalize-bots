@@ -900,7 +900,8 @@
       } catch (err) { flash("❌ " + err.message, "erro"); }
       e.target.value = "";
     });
-    function downscale(file, max) {
+    // mime: "image/png" (padrão, p/ logo com transparência) ou "image/jpeg" (fotos — bem menor).
+    function downscale(file, max, mime, q) {
       return new Promise((resolve, reject) => {
         const fr = new FileReader();
         fr.onload = () => {
@@ -909,13 +910,22 @@
             let w = img.width, h = img.height; const s = Math.min(1, max / Math.max(w, h));
             w = Math.round(w * s); h = Math.round(h * s);
             const c = document.createElement("canvas"); c.width = w; c.height = h;
-            c.getContext("2d").drawImage(img, 0, 0, w, h);
-            resolve(c.toDataURL("image/png"));
+            const ctx = c.getContext("2d");
+            if (mime === "image/jpeg") { ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, w, h); } // fundo branco (JPEG não tem transparência)
+            ctx.drawImage(img, 0, 0, w, h);
+            resolve(c.toDataURL(mime || "image/png", q));
           };
           img.onerror = reject; img.src = fr.result;
         };
         fr.onerror = reject; fr.readAsDataURL(file);
       });
+    }
+    // Se uma imagem da lista falhar ao carregar, tenta de novo 1x (com cache-buster).
+    function imgRetry(elx) {
+      if (elx.dataset.retry) return;
+      elx.dataset.retry = "1";
+      const base = elx.src.split("?")[0];
+      setTimeout(() => { elx.src = base + "?r=" + Date.now(); }, 700);
     }
 
     // ===== Navegação por telas (cada menu abre uma página própria) =====
@@ -1407,7 +1417,7 @@
           <label class="prod-toggle" title="${p.ativo === false ? "Ativar (em estoque)" : "Desativar (em falta)"}">
             <input type="checkbox" ${p.ativo !== false ? "checked" : ""} onchange="toggleProdutoAtivo('${p.id}', this.checked)" /><span class="sl"></span>
           </label>
-          ${p.imagem ? `<img class="pimg" src="${esc(p.imagem)}" />` : `<div class="semimg">📦</div>`}
+          ${p.imagem ? `<img class="pimg" src="${esc(p.imagem)}" loading="lazy" decoding="async" width="66" height="66" onerror="imgRetry(this)" />` : `<div class="semimg">📦</div>`}
           <div class="pinfo">
             <div class="pnome">${esc(p.nome)} ${p.ativo === false ? '<span style="color:#dc2626;font-size:12px">(inativo)</span>' : ""}</div>
             ${p.codigo ? `<div class="pcod" style="font-size:12px;color:var(--suave);font-weight:600">cód ${esc(p.codigo)}</div>` : ""}
@@ -1779,7 +1789,7 @@
       const f = input.files[0]; if (!f) return;
       el("prodImgStatus").textContent = "Enviando...";
       try {
-        const dataUrl = await downscale(f, 800); // redimensiona antes (evita upload gigante do celular)
+        const dataUrl = await downscale(f, 800, "image/jpeg", 0.82); // JPEG: foto fica bem menor → carrega rápido e confiável
         const res = await fetch("/api/catalogo/imagem", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ dataUrl }) });
         const d = await res.json(); if (!d.ok) throw new Error(d.erro || "falha");
         prodImagem = d.path;
