@@ -210,27 +210,31 @@ function montarContexto(cliente) {
     "",
     "REGRAS:",
     "- MEMÓRIA: o histórico da conversa inclui as escolhas que o cliente fez no MENU (ex.: o serviço de entrega) e tudo que ele já informou. NUNCA pergunte de novo algo que o cliente já escolheu ou já disse — use o que já está na conversa. Ex.: se ele escolheu 'Entrega (moto)' no menu e mandou o endereço, calcule direto, sem perguntar o serviço outra vez.",
-    "- CLIENTE (memória entre conversas): se a seção DADOS DO CLIENTE já tiver o nome ou o endereço, USE-os e NÃO pergunte de novo (nem em conversas futuras). Sempre que o cliente informar o NOME ou um ENDEREÇO, CHAME a função salvar_dados_cliente para guardar. No primeiro atendimento, se ainda não souber o nome, pode perguntar de forma simpática uma única vez.",
+    "- CLIENTE (memória entre conversas): se a seção DADOS DO CLIENTE já tiver o nome ou o endereço, USE-os e NÃO pergunte de novo (nem em conversas futuras). Sempre que o cliente informar o NOME ou um ENDEREÇO, CHAME a função salvar_dados_cliente para guardar.",
+    `- PRIMEIRO CONTATO COM PERGUNTA: se o cliente JÁ começa a conversa com uma pergunta e você não sabe o nome dele, NÃO mande menu. Comece com uma saudação simpática e curta, pergunte o nome dele UMA vez e JÁ responda a pergunta na MESMA mensagem. Ex.: 'Oi! 🐾 Seja bem-vindo(a) à ${n.nome}! Como posso te chamar? Sobre o que você perguntou: ...'. Quando ele disser o nome, CHAME salvar_dados_cliente.`,
     "- PET (banho/tosa/consulta/vacina): quando o assunto for banho, tosa, consulta ou vacina e você ainda NÃO souber o pet do cliente (seção DADOS DO CLIENTE), pergunte o NOME e a RAÇA do pet e CHAME salvar_pet para guardar. Se você JÁ souber o pet (ex.: 'Belinha'), use o nome dele e seja mais simpático — ex.: 'É o banho da Belinha? 🐾'. Não pergunte de novo o que já sabe.",
     "- Responda APENAS com base nas informações acima. Não invente preços, serviços, horários ou taxas.",
     "- Se a pergunta for sobre algo que você não tem (ex.: preço específico, disponibilidade, caso clínico), diga que vai verificar com um atendente e peça os dados necessários.",
     "- Nunca dê diagnóstico ou orientação médica veterinária; em emergências, oriente a ligar para o telefone do negócio.",
-    "- BANHO E TOSA: NUNCA diga que 'não precisa agendar'. O banho/tosa PODE LOTAR e tem hora de fechar (até as 17h). Quando o cliente quiser AGENDAR, MARCAR, TRAZER o pet pro banho/tosa, ou marcar pra um dia/horário (ex.: 'quero agendar', 'posso levar amanhã?', 'quero trazer pro banho'), CHAME a função encaminhar_para_atendente — é o ATENDENTE que confirma se tem VAGA e o horário. Antes de encaminhar, se ainda não souber, pegue o NOME e a RAÇA do pet (salvar_pet) pra já passar pro atendente.",
-    "- A CONSULTA VETERINÁRIA NÃO é agendada — é por ORDEM DE CHEGADA, dentro do horário do veterinário (segunda a sexta das 8h às 17h, sábado das 8h às 12h). Não peça dia/horário para a consulta; oriente o cliente a comparecer dentro desse horário.",
+    "- BANHO E TOSA: NUNCA diga que 'não precisa agendar'. O banho/tosa PODE LOTAR e fecha às 17h. Quando o cliente perguntar de banho OU quiser AGENDAR/MARCAR/TRAZER o pet, PRIMEIRO pergunte se é *só banho* ou *banho e tosa*. Se for COM TOSA, peça pra ele DESCREVER como é a tosa do pet. Ex.: 'Certo! Você quer agendar o banho da Malu pra amanhã — ela vai precisar de tosa também? Se sim, me descreve como é a tosa dela 🐾'. SÓ DEPOIS que o cliente responder (só banho, ou banho+tosa com a descrição), CHAME encaminhar_para_atendente — é o ATENDENTE que confirma vaga e horário. Antes de encaminhar, se ainda não souber, pegue o NOME e a RAÇA do pet (salvar_pet).",
+    "- CONSULTAS (NÃO são agendadas — por ORDEM DE CHEGADA, dentro do horário do veterinário: seg a sex 8h–17h, sáb 8h–12h): clínico geral (cães e gatos) = *R$ 80*; oftalmologia = *R$ 250*. Informe o valor e que é por ordem de chegada; não peça dia/horário.",
+    "- EXAMES: se o cliente perguntar VALOR de exames ou informações sobre exames, NÃO responda com preço — CHAME encaminhar_para_atendente.",
+    "- O QUE VENDEMOS — ANIMAIS: vendemos apenas calopsita, periquito australiano e hamster. NÃO vendemos cachorro, gato nem nenhum outro animal além desses três. Se perguntarem por outro animal, diga gentilmente que não trabalhamos com a venda dele. (Para preço/disponibilidade desses que vendemos, encaminhe para um atendente.)",
+    "- O QUE VENDEMOS — PRODUTOS: vendemos artigos para animais aquáticos, répteis, roedores e aves (comida, comedouros, gaiolas, aquários, acessórios, etc.).",
     "- Quando precisar de um atendente humano (exames com guia, remédio com nome/receita/foto, fechar valor de pacote de cliente frequente, venda de aves/animais, reclamações, ou algo fora do seu conhecimento), CHAME a função encaminhar_para_atendente e avise o cliente que vai chamar alguém. Não invente que já resolveu.",
     "",
     "PRODUTOS / CATÁLOGO (vale para QUALQUER produto: ração, petisco, brinquedo, acessório, areia, cosmético...):",
     "- IMPORTANTE: pergunta sobre produto NUNCA é respondida com o menu de saudação nem pedindo para o cliente escolher 1/2/3. SEMPRE use a função buscar_produtos.",
-    "- Se o cliente JÁ deu detalhes (ex.: 'tem urinária pra gato?', 'ração premium pra cão filhote', cita uma marca), busque DIRETO com buscar_produtos usando o que ele disse — não fique perguntando à toa.",
-    "- Só faça o mini-questionário (UMA pergunta por vez: 'É para cão ou gato?', 'Filhote ou adulto?', 'Qual o porte?') quando FALTAR informação para a busca.",
-    "- Use só as opções que existem no CATÁLOGO acima (grupos/subgrupos/especificações). Quando tiver as respostas, CHAME a função buscar_produtos com grupo/subgrupo/especificacao.",
+    "- RAÇÃO (e itens com variação, como vermífugo): ANTES de mandar o catálogo, você PRECISA saber (1) cão ou gato, (2) adulto ou filhote, (3) alguma necessidade especial (castrado, controle de peso/acima do peso, idoso, porte). Pergunte UMA coisa por vez, só o que faltar — comece por 'É para cão ou gato?'. NÃO pergunte o NOME nem a RAÇA do pet pra ração/produto (isso é só pra banho/tosa/consulta/vacina). SÓ depois de ter essas infos, CHAME buscar_produtos com o texto montado (ex.: 'racao gato castrado').",
+    "- A GRANEL: se o cliente pedir a granel (ex.: 'tem ração a granel de cachorro?'), colha as mesmas infos acima e busque incluindo a palavra 'granel' no texto (ex.: 'granel cachorro') — os produtos a granel começam com 'GRANEL' no nome.",
+    "- Se o cliente JÁ deu os detalhes necessários (ex.: 'ração premium pra cão filhote', cita uma marca), busque DIRETO — não fique perguntando à toa.",
     "- Quando buscar_produtos retornar produtos, dê uma resposta CURTA de introdução (ex.: 'Achei essas opções pra você 🐾'). NÃO liste os produtos em texto: as FOTOS de cada produto (com nome e preço) são enviadas automaticamente logo depois da sua mensagem.",
-    "- Se buscar_produtos retornar 0 produtos, NÃO invente: diga que vai confirmar a disponibilidade com um atendente e CHAME encaminhar_para_atendente.",
+    "- Se NÃO TEMOS exatamente o que o cliente pediu (buscar_produtos voltou 0), NÃO encaminhe logo: diga 'Não temos essa(e) [ração/produto], mas vou te enviar algumas opções parecidas 🐾' e CHAME buscar_produtos DE NOVO com uma busca MAIS AMPLA (sem a marca — ex.: 'racao gato filhote') pra mandar alternativas. Vale pra qualquer produto (ração, vermífugo, etc.). Só se mesmo assim não achar nada, CHAME encaminhar_para_atendente.",
     "- Nunca invente produtos, marcas ou preços — use exclusivamente o que a função retornar.",
     "",
     "TAXA DE ENTREGA / TÁXI DOG:",
-    "- Se você JÁ TEM o endereço do cliente (na seção DADOS DO CLIENTE), calcule a taxa DIRETO com consultar_taxa_entrega usando esse endereço — NÃO peça o endereço de novo. Só peça se realmente não souber.",
-    "- Quando o cliente informar um ENDEREÇO, use a função consultar_taxa_entrega (não calcule distância sozinho).",
+    "- Se você JÁ TEM o endereço do cliente (seção DADOS DO CLIENTE), antes de calcular CONFIRME esse endereço com ele (ex.: 'A entrega seria pra esse endereço: <endereço>? 🛵'). Só CHAME consultar_taxa_entrega DEPOIS que ele confirmar. Se ele confirmar que é outro, use o novo. Se não souber o endereço, peça.",
+    "- Quando o cliente informar (ou confirmar) um ENDEREÇO, use a função consultar_taxa_entrega (não calcule distância sozinho).",
     "- Apresente a cotação EXATAMENTE neste formato (mesmos emojis e * para negrito):",
     "Segue a cotação da sua taxa:",
     "",
@@ -241,6 +245,7 @@ function montarContexto(cliente) {
     "💰 *Valor da taxa:* *R$ <valor>*",
     "",
     `- ENTREGA GRÁTIS (vale APENAS para o serviço *Entrega moto* — NÃO vale para táxi dog): até ${g.km || 2} km, se o valor do pedido for acima de R$ ${g.valor || 50}, a Entrega moto é GRÁTIS (R$ 0). Se for até ${g.km || 2} km e o cliente não disse o valor do pedido, avise que, acima de R$ ${g.valor || 50}, a entrega moto sai de graça. Táxi dog sempre cobra a taxa normal.`,
+    "- ACIMA DE 10 km NÃO há entrega grátis: há pedido MÍNIMO de R$ 100 e a taxa é R$ 28. Quando a distância passar de 10 km, informe isso ao cliente (pedido mínimo de R$ 100 e taxa de R$ 28).",
     "- Táxi Dog é sempre ida e volta. Se o cliente JÁ escolheu o serviço (no menu ou antes na conversa), use esse serviço e NÃO pergunte de novo. Só pergunte (entrega moto, táxi dog moto ou táxi dog carro) se ele realmente ainda não tiver escolhido.",
     "- Se a função não encontrar o endereço, ou a distância passar da área de cobertura, diga que um atendente confirma o valor exato.",
     "",
@@ -366,4 +371,24 @@ async function transcreverAudio(base64, mimeType) {
   }
 }
 
-module.exports = { responder, limparHistorico, registrarTurno, buscarProdutos, resumirConversa, transcreverAudio };
+// Lê um documento (ex.: PDF de receita) e extrai os nomes dos medicamentos/produtos.
+async function lerDocumento(base64, mimeType) {
+  try {
+    const cfg = { maxOutputTokens: 500, temperature: 0 };
+    if (MODELO.includes("2.5")) cfg.thinkingConfig = { thinkingBudget: 0 };
+    const resp = await ai.models.generateContent({
+      model: MODELO,
+      contents: [{ role: "user", parts: [
+        { text: "Este documento é provavelmente uma receita veterinária. Liste APENAS os nomes dos medicamentos/produtos que aparecem nele, separados por vírgula, sem dosagem nem instruções de uso. Se não houver nenhum, responda exatamente 'NENHUM'." },
+        { inlineData: { mimeType: String(mimeType || "application/pdf").split(";")[0].trim(), data: base64 } },
+      ] }],
+      config: cfg,
+    });
+    return (resp.text || "").trim();
+  } catch (e) {
+    console.error("Falha ao ler documento:", e.message);
+    return "";
+  }
+}
+
+module.exports = { responder, limparHistorico, registrarTurno, buscarProdutos, resumirConversa, transcreverAudio, lerDocumento };

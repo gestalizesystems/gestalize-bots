@@ -92,7 +92,7 @@ function ehDespedidaForte(t) {
   return DESPEDIDA.some((p) => n === p || n.includes(p));
 }
 
-// Envia o encerramento e, se elegível (1x/7 dias), faz a pergunta de NPS (nota 0–10).
+// Envia o encerramento e, se elegível (1x/30 dias), faz a pergunta de NPS (nota 0–10).
 async function encerrarComNps(from, msgPadrao) {
   if (nps.podePerguntar(from)) {
     nps.marcarPerguntado(from);
@@ -106,7 +106,7 @@ async function encerrarComNps(from, msgPadrao) {
   }
 }
 
-// Convida o cliente a seguir no Instagram e avaliar no Google (vai junto com o NPS, 1x/7 dias).
+// Convida o cliente a seguir no Instagram e avaliar no Google (vai junto com o NPS, 1x/30 dias).
 async function enviarConviteRedes(from) {
   const n = config.get().negocio || {};
   const insta = String(n.instagram || "").trim();

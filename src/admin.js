@@ -36,6 +36,22 @@ async function processarAudio(from, mediaId, nomeWpp) {
     console.error("Falha ao processar áudio:", e.message);
   }
 }
+
+// Lê um documento recebido (ex.: PDF de receita), extrai os medicamentos e processa como texto.
+async function processarDocumento(from, mediaId, mimeType, nomeWpp) {
+  try {
+    const { buffer, mimeType: mt } = await wa.baixarMidia(mediaId);
+    try { await wa.enviarTexto(from, "📄 Recebi seu documento! Já vou verificar os itens. 🐾"); } catch (_) {}
+    const lista = await ai.lerDocumento(buffer.toString("base64"), mt || mimeType);
+    if (lista && lista.toUpperCase() !== "NENHUM") {
+      await conversa.processar(from, `Mandei uma receita com estes itens: ${lista}. Quais vocês têm e quanto custa cada um?`, nomeWpp);
+    } else {
+      await conversa.processar(from, "Enviei um documento (receita). Vocês conseguem ver e me passar os valores?", nomeWpp);
+    }
+  } catch (e) {
+    console.error("Falha ao processar documento:", e.message);
+  }
+}
 // Em produção (Railway) as imagens vão para o Volume persistente; local usa public/uploads.
 const UPLOAD_DIR = process.env.DATA_DIR ? path.join(process.env.DATA_DIR, "uploads") : path.join(PUBLIC_DIR, "uploads");
 
@@ -194,6 +210,8 @@ function iniciarAdmin(porta) {
               conversa.processar(msg.from, msg.text.body || "", nomeWpp).catch((e) => console.error("Erro ao processar mensagem:", e.message));
             } else if (msg.type === "audio" && msg.audio && msg.audio.id) {
               processarAudio(msg.from, msg.audio.id, nomeWpp).catch((e) => console.error("Erro no áudio:", e.message));
+            } else if (msg.type === "document" && msg.document && msg.document.id) {
+              processarDocumento(msg.from, msg.document.id, msg.document.mime_type, nomeWpp).catch((e) => console.error("Erro no documento:", e.message));
             }
           }
         }

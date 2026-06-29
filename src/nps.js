@@ -6,7 +6,7 @@ const path = require("path");
 
 const DIR = process.env.DATA_DIR || path.join(__dirname, "..", "data");
 const CAMINHO = path.join(DIR, "nps.json");
-const THROTTLE_MS = 7 * 24 * 60 * 60 * 1000; // não pergunta de novo o NPS antes de 7 dias
+const THROTTLE_MS = 30 * 24 * 60 * 60 * 1000; // não pergunta de novo o NPS antes de 30 dias
 
 let dados = carregar();
 
@@ -30,7 +30,7 @@ function persistir() {
   }
 }
 
-// Pode perguntar a nota? (respeita o limite de 1x a cada 7 dias por contato)
+// Pode perguntar a nota? (respeita o limite de 1x a cada 30 dias por contato)
 function podePerguntar(telefone) {
   return Date.now() - (dados.perguntadoEm[telefone] || 0) > THROTTLE_MS;
 }
