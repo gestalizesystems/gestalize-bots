@@ -5,7 +5,7 @@
 <h1 align="center">Gestalize Bots</h1>
 
 <p align="center">
-  AI-Powered WhatsApp Automation Platform
+  Intelligent Business Automation for WhatsApp
 </p>
 
 <p align="center">
@@ -20,27 +20,31 @@
 
 ## Overview
 
-Gestalize Bots is a conversational customer service platform that automates first-line support on WhatsApp. It answers customer inquiries in natural language, quotes deliveries, searches the product catalog, and routes complex requests to human staff. A web-based administration panel allows non-technical operators to manage every part of the experience — business information, menus, pricing, catalog, and knowledge base — without writing code.
+Gestalize Bots is an AI-powered WhatsApp automation platform that enables businesses to automate customer communication, streamline support, qualify leads, manage conversations and integrate intelligent workflows into their daily operations.
 
-The platform is designed to operate as an always-available assistant that resolves routine questions instantly while preserving a seamless path to human attention when it matters.
+Designed for organizations of all sizes, the platform combines conversational AI, business automation and a configurable administration panel, allowing non-technical teams to customize the entire customer experience without writing code.
 
 ## Business Problem
 
-Pet shops and veterinary clinics receive a continuous stream of repetitive messages: opening hours, product prices and availability, delivery quotes, service details, and appointment requests. Handling these manually is slow and inconsistent, occupies staff who could be assisting customers in person, and leaves messages unanswered outside business hours. The result is longer response times, lost sales, and an uneven customer experience.
+Businesses receive a high volume of repetitive customer requests every day through WhatsApp.
+
+Questions about products, services, appointments, pricing, availability and support consume valuable staff time, increase response delays and often result in inconsistent customer experiences.
+
+As organizations grow, maintaining fast, personalized and scalable communication becomes increasingly difficult without automation.
 
 ## Solution
 
-Gestalize Bots provides an automated first line of support that responds instantly to common inquiries and escalates to a human operator only when necessary. Responses are grounded strictly in the business's own data, so the assistant does not invent prices, services, or availability. When a conversation requires human involvement, it is transferred with an automatically generated summary, allowing staff to continue without re-reading the full exchange.
+Gestalize Bots provides an intelligent automation layer for WhatsApp that handles routine conversations, retrieves business information, executes predefined workflows and escalates complex requests to human operators whenever necessary.
 
-Because the entire experience is managed through a web panel, the business can adapt messages, pricing, catalog, and rules on its own and in real time.
+The platform combines AI-powered conversations with configurable business rules, ensuring responses remain accurate, consistent and aligned with each organization's data and processes.
 
 ## Key Features
 
 - Natural-language responses grounded in the business's configured data
 - Keyword-based triage and guided, numbered menus
-- Product catalog with search and image-based responses
-- Delivery and pickup fee estimation based on customer address
-- Customer records with pets, funnel stages, tags, and internal notes
+- Catalog and service management with search and image-based responses
+- Location-based pricing and routing
+- Customer CRM with custom records, tags and internal notes
 - Intelligent human handoff with automatically generated conversation summaries
 - Voice message transcription and document reading
 - Product recognition from customer-submitted images
@@ -53,11 +57,13 @@ Because the entire experience is managed through a web panel, the business can a
 
 ## Architecture Overview
 
-The platform runs as a single service with two responsibilities: an inbound messaging webhook and a secured web administration panel.
+Gestalize Bots is built around a modular architecture that separates messaging, business logic, artificial intelligence and administration into independent layers.
 
-Incoming messages pass through a conversation engine that first attempts deterministic resolution through keyword triage and guided menus. Open-ended questions are delegated to the AI layer, which is constrained to the business's configured knowledge and catalog and can invoke internal capabilities such as delivery estimation and catalog search. When a request exceeds automated handling, the conversation is handed to a human operator together with a concise, automatically generated summary.
+Incoming WhatsApp conversations are processed by the conversation engine, which combines configurable business rules with AI-powered responses to deliver accurate, context-aware interactions. When a request requires human intervention, the platform seamlessly transfers the conversation while preserving its context.
 
-Conversation logic is intentionally decoupled from the messaging transport, keeping business behavior independent of the underlying channel. All customer-facing content and operational rules are defined through the administration panel.
+The administration panel allows organizations to manage business information, knowledge bases, products, services, workflows and AI behavior through an intuitive interface, eliminating the need for direct code changes.
+
+This architecture enables the platform to remain scalable, maintainable and adaptable to different industries while keeping communication channels independent from the core business logic.
 
 ## Technology Stack
 
@@ -117,6 +123,7 @@ At a high level, the codebase is organized into cohesive modules:
 - Expanded analytics and reporting
 - Additional third-party integrations
 - Role-based access control for larger teams
+- Multi-channel messaging support
 
 ## License
 
