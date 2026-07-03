@@ -1,158 +1,82 @@
-# Lecoland — Bot de atendimento do WhatsApp 🐾
+# Lecoland
 
-Bot de atendimento para pet shop / clínica veterinária, integrado à **WhatsApp Cloud API**
-(oficial da Meta). Ele:
+AI-assisted customer service automation for WhatsApp, built for pet retail and veterinary businesses.
 
-- Recebe mensagens por **webhook** oficial da Meta (sem QR code, sem navegador, sem risco de ban).
-- Faz **triagem por palavra-chave**: reconhece intenções como *banho*, *veterinário*, *vacina*,
-  *horário*, *endereço*, *pagamento*, *entrega* e responde na hora com respostas prontas.
-- Tem um **menu de saudação** numerado e **sub-menus** próprios por palavra-chave
-  (ex.: "carrapaticida" abre um menu com as opções de carrapaticida).
-- Responde **perguntas livres** com a IA **Google Gemini** (`gemini-2.5-flash`), ancorada nos
-  dados do negócio — sem inventar preço, horário ou serviço.
-- Faz **handoff para humano** de forma inteligente: por pedido do cliente (*atendente*) **ou**
-  quando a própria IA decide encaminhar; depois reengaja/encerra sozinho (ver abaixo).
-- **Calcula a taxa de entrega / táxi dog pelo endereço do cliente**: geolocaliza, mede a
-  **distância de carro** a partir da loja (OpenRouteService, gratuito) e responde o valor da faixa.
-- Tem um **painel de administração no navegador** (com login) pra editar tudo por formulários —
-  saudação, menus, FAQ, preços, taxas, catálogo e a base de conhecimento da IA. Mudanças valem na hora.
-- Tem um **interruptor liga/desliga** do bot, pra preparar tudo com ele em silêncio e só ativar quando quiser.
+## Overview
 
-## Como o handoff funciona
-1. Handoff (cliente pede *atendente* ou a IA encaminha) → o bot fica em silêncio para aquele contato.
-2. A cada mensagem do cliente, o cronômetro reinicia (não interrompe um atendimento ativo).
-3. Após **1h de silêncio** → o bot pergunta *"Posso te ajudar em mais alguma coisa?"*.
-4. Se o cliente disser que não (ou ficar **2h** sem responder) → encerra com uma despedida.
-   Se trouxer algo novo → começa um atendimento novo.
-A conversa **não é apagada** — o atendente lê todo o histórico no WhatsApp.
+Lecoland is a conversational customer service platform that automates first-line support on WhatsApp. It answers customer inquiries in natural language, quotes deliveries, searches the product catalog, and routes complex requests to human staff. A web-based administration panel allows non-technical operators to manage every part of the experience — business information, menus, pricing, catalog, and knowledge base — without writing code.
 
-## Stack
+The platform is designed to operate as an always-available assistant that resolves routine questions instantly while preserving a seamless path to human attention when it matters.
 
-| Camada | Tecnologia |
-|---|---|
-| **Runtime** | Node.js ≥ 18 |
-| **Servidor** | Express 4 — painel web + webhook do WhatsApp (serviço único) |
-| **Frontend (painel)** | HTML + CSS + JavaScript puro, sem framework · fonte Poppins |
-| **Dados** | Arquivos **JSON** (sem banco SQL): `config`, `conta`, `clientes`, `sessoes` |
-| **WhatsApp** | WhatsApp Cloud API (oficial da Meta) — webhook + Graph API |
-| **IA** | Google Gemini (`@google/genai`) · `gemini-2.5-flash` · function calling |
-| **Geolocalização** | OpenRouteService — distância de carro p/ a taxa de entrega |
-| **Auth (painel)** | Sessão por cookie + senha com hash **scrypt** (módulo `crypto` do Node) |
-| **Persistência** | Volume do Railway (`DATA_DIR`) — config, contas, clientes, sessões, uploads |
-| **Deploy** | Railway — Node, serviço único, auto-deploy no `git push` |
+## Business Problem
 
-## Requisitos
-- **Node.js 18+**.
-- **Chave da API do Google Gemini** — gratuita: https://aistudio.google.com/apikey
-  (para produção, ative o faturamento no Google para sair do limite gratuito de 5 req/min).
-- **Credenciais da WhatsApp Cloud API** (Phone Number ID + token) — ver "Configurar o WhatsApp" abaixo.
-- *(Opcional)* Chave gratuita do **OpenRouteService** — só para calcular a taxa pelo **endereço**
-  do cliente. Sem ela, o bot ainda calcula pela **distância (km)** informada.
+Pet shops and veterinary clinics receive a continuous stream of repetitive messages: opening hours, product prices and availability, delivery quotes, service details, and appointment requests. Handling these manually is slow and inconsistent, occupies staff who could be assisting customers in person, and leaves messages unanswered outside business hours. The result is longer response times, lost sales, and an uneven customer experience.
 
-## Variáveis de ambiente
+## Solution
 
-Defina no `.env` (local) ou nas **Variables** do serviço no **Railway** (produção):
+Lecoland provides an automated first line of support that responds instantly to common inquiries and escalates to a human operator only when necessary. Responses are grounded strictly in the business's own data, so the assistant does not invent prices, services, or availability. When a conversation requires human involvement, it is transferred with an automatically generated summary, allowing staff to continue without re-reading the full exchange.
 
-| Variável | Valor / origem | Obrigatória? |
-|---|---|---|
-| `GEMINI_API_KEY` | Chave do Google AI Studio (Gemini) | ✅ (p/ a IA) |
-| `GEMINI_MODEL` | Modelo da IA — padrão `gemini-2.5-flash` | opcional |
-| `WHATSAPP_TOKEN` | Token permanente (Usuário do Sistema) do app na Meta | ✅ produção |
-| `WHATSAPP_PHONE_ID` | Phone Number ID do número (WhatsApp Manager) | ✅ produção |
-| `WHATSAPP_VERIFY_TOKEN` | Senha que **você inventa** (verificação do webhook) | ✅ produção |
-| `WHATSAPP_API_VERSION` | Versão da Graph API — padrão `v21.0` | opcional |
-| `ORS_API_KEY` | Chave do OpenRouteService (taxa de entrega por endereço) | opcional |
-| `ADMIN_EMAIL` / `ADMIN_SENHA` | Login do painel (semeia `data/conta.json` na 1ª vez) | ✅ |
-| `PUBLIC_URL` | URL pública (ex.: `https://bots.gestalizesystems.com.br`) — link das fotos do catálogo | opcional |
-| `DATA_DIR` | Pasta persistente (Volume do Railway, ex.: `/data`) | ✅ no Railway |
-| `PORT` | Porta do servidor — **definida automaticamente pelo Railway** | auto |
-| `ADMIN_PORT` | Porta local do painel — padrão `4500` | opcional (local) |
+Because the entire experience is managed through a web panel, the business can adapt messages, pricing, catalog, and rules on its own and in real time.
 
-> ⚠️ As variáveis sensíveis (`GEMINI_API_KEY`, `WHATSAPP_TOKEN`, senhas) ficam **só no `.env`** (local, no `.gitignore`) e nas **Variables** do Railway — **nunca** vão pro Git.
+## Key Features
 
-## Como rodar (local)
-```bash
-# 1. Instale as dependências
-npm install
+- Natural-language responses grounded in the business's configured data
+- Keyword-based triage and guided, numbered menus
+- Product catalog with search and image-based responses
+- Delivery and pickup fee estimation based on customer address
+- Customer records with pets, funnel stages, tags, and internal notes
+- Intelligent human handoff with automatically generated conversation summaries
+- Voice message transcription and document reading
+- Product recognition from customer-submitted images
+- Customer satisfaction surveys with reporting
+- Broadcast campaigns to segmented audiences
+- Operational metrics dashboard
+- Business-hours and holiday awareness
+- Team directory recognition
+- Complete web administration panel, no code required
 
-# 2. Configure as variáveis
-cp .env.example .env
-#   edite o .env e preencha GEMINI_API_KEY, ADMIN_EMAIL/ADMIN_SENHA e (depois) as WHATSAPP_*
+## Architecture Overview
 
-# 3. (opcional) Teste a triagem sem WhatsApp nem API
-node test-triagem.js
+The platform runs as a single service with two responsibilities: an inbound messaging webhook and a secured web administration panel.
 
-# 4. Suba o servidor (painel + webhook)
-npm start
-```
-- O painel abre em **http://localhost:4500** (faça login com ADMIN_EMAIL / ADMIN_SENHA).
-- O bot só responde de verdade depois do **deploy + webhook** (precisa de URL pública). Localmente, dá pra editar tudo no painel e testar a triagem com `node test-triagem.js`.
+Incoming messages pass through a conversation engine that first attempts deterministic resolution through keyword triage and guided menus. Open-ended questions are delegated to the AI layer, which is constrained to the business's configured knowledge and catalog and can invoke internal capabilities such as delivery estimation and catalog search. When a request exceeds automated handling, the conversation is handed to a human operator together with a concise, automatically generated summary.
 
-## Configurar o WhatsApp Cloud API (passo a passo)
-O guia detalhado com prints/etapas está em **MIGRACAO.md**. Em resumo:
+Conversation logic is intentionally decoupled from the messaging transport, keeping business behavior independent of the underlying channel. All customer-facing content and operational rules are defined through the administration panel.
 
-**Na Meta (uma vez):**
-1. Crie um app em **developers.facebook.com** usando o caso de uso **"Conectar-se com clientes pelo WhatsApp"** (isso já adiciona o produto WhatsApp).
-2. Em **WhatsApp → Configuração da API**, pegue o **Phone Number ID** e gere um **token**
-   (o temporário serve para testar; gere um **permanente** via *Usuário do sistema* para produção).
-3. Adicione **seu celular** como destinatário de teste.
+## Technology Stack
 
-**No projeto (`.env`):**
-```
-WHATSAPP_TOKEN=<token>
-WHATSAPP_PHONE_ID=<phone number id>
-WHATSAPP_VERIFY_TOKEN=<uma senha que você inventa>
-```
+| Layer | Technology |
+| --- | --- |
+| Runtime | Node.js |
+| Web framework | Express |
+| Messaging | WhatsApp Cloud API |
+| Natural language | Google Gemini |
+| Geolocation and routing | OpenRouteService |
+| Administration panel | Server-rendered HTML, CSS, and JavaScript |
+| Persistence | File-based structured storage |
 
-**Deploy + webhook:** o webhook precisa de uma **URL pública (HTTPS)**. Suba no Railway
-(guia em **DEPLOY-RAILWAY.md**) e, na Meta, cadastre o webhook:
-- **Callback URL:** `https://SUA-URL/webhook`
-- **Verify token:** o mesmo `WHATSAPP_VERIFY_TOKEN`
-- Assine o campo **`messages`**.
+## Project Structure
 
-Por fim, **ligue o bot** no painel e mande uma mensagem para o número. 🎉
+At a high level, the codebase is organized into cohesive modules:
 
-## Painel de administração
-Faça login e edite tudo por formulários (clique em **Salvar tudo** — vale na hora):
-- **Dashboard** — visão geral (métricas demonstrativas + status real da automação).
-- **Dados do negócio** — nome, endereço, telefone, horários, pagamento e a **base de conhecimento da IA**.
-- **Mensagens** — saudação e mensagem de atendente.
-- **Menu de saudação** — opções numeradas + **sub-menus** por palavra-chave.
-- **Respostas rápidas (FAQ)**.
-- **Taxas e serviços** — entrega/táxi dog por **faixa de km** + endereço de partida da loja.
-- **Catálogo** — produtos (nome, imagem, descrição, preço) com **grupos/subgrupos/especificações**.
-- **Palavras-chave** (atendente, saudação).
-- **Configurações gerais** — dados de acesso ao painel e troca de senha.
+- Messaging integration — inbound webhook handling and outbound message delivery
+- Conversation engine — triage, menus, dialog state, and human handoff
+- AI service — grounded responses, catalog search, transcription, and document reading
+- Administration panel — configuration interface and management endpoints
+- Data layer — business configuration, product catalog, customer records, and analytics
 
-Em qualquer texto dá pra usar `{nome}`, `{telefone}`, `{endereco}`, `{pagamento}`, `{horarioSemana}` etc.
+## Screenshots
 
-## Estrutura
-```
-data/
-  config.json     → TODA a configuração (editada pelo painel)
-src/
-  config.js       → carrega/salva o config.json e monta as respostas
-  triage.js       → triagem por palavra-chave, menu e sub-menus
-  conversa.js     → lógica da conversa (handoff, timers) — independente do transporte
-  ai.js           → respostas livres via Google Gemini (+ cálculo de taxa por endereço)
-  geo.js          → geolocalização e distância de carro (OpenRouteService)
-  wa.js           → cliente da WhatsApp Cloud API (envio de mensagens)
-  admin.js        → servidor do painel + webhook do WhatsApp
-  conta.js        → conta de acesso ao painel (e-mail + senha com hash)
-  estado.js       → estado de runtime (conexão)
-  index.js        → entrada: sobe painel + webhook (Cloud API)
-  painel-only.js  → abre só o painel (npm run painel)
-public/
-  admin.html      → painel  ·  login.html → tela de login
-test-triagem.js   → teste offline da triagem
-MIGRACAO.md       → setup do WhatsApp Cloud API (passo a passo)
-DEPLOY-RAILWAY.md → deploy no Railway + webhook
-MULTICONTA.md     → plano de multi-conta/multi-bot (futuro)
-```
+Screenshots will be added here.
 
-## Observações
-- **Custo do Gemini:** só perguntas livres chamam a IA — menu e palavras-chave são instantâneos e não
-  consomem cota. O plano gratuito limita ~5 req/min; para produção, ative o faturamento (custo baixíssimo por mensagem).
-- **Estado em memória:** handoff, contexto de menu e histórico vivem na RAM e somem ao reiniciar.
-  No Railway o disco também é efêmero — para produção, use um **Volume** ou um **banco** (ver MULTICONTA.md).
-- **Sem atribuição externa:** o código é próprio do projeto.
+## Future Improvements
+
+- Multi-language support
+- Shared multi-agent inbox with assignment and routing
+- Expanded analytics and reporting
+- Additional third-party integrations
+- Role-based access control for larger teams
+
+## License
+
+Proprietary software. All rights reserved.
