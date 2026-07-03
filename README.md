@@ -62,6 +62,8 @@ Gestalize Bots provides an intelligent automation layer for WhatsApp that handle
 
 The platform combines AI-powered conversations with configurable business rules, ensuring responses remain accurate, consistent and aligned with each organization's data and processes.
 
+## Key Features
+
 ### AI
 
 - Natural-language conversations
