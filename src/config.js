@@ -192,6 +192,24 @@ function migrar(d) {
     if (!d.infoIA.includes(marca5)) d.infoIA = (d.infoIA + bloco5).trim();
     d._conhecimentoLecoland5 = true; mudou = true;
   }
+  // Conhecimento — parte 6 (tabela de vacinação de cães).
+  if (!d._conhecimentoLecoland6) {
+    const marca6 = "=== Vacinação de cães (Lecoland) ===";
+    const bloco6 = [
+      "",
+      "",
+      marca6,
+      "VACINAÇÃO DE CÃES (valores POR DOSE):",
+      "- V10 (viral) — a partir de 6 a 8 semanas. Previne: cinomose, hepatite infecciosa canina, adenovírus canino tipo 2, coronavírus canino, parainfluenza, parvovírus e leptospirose. São 4 doses, com intervalo de 21 dias entre cada. R$ 70,00 por dose.",
+      "- Gripe canina — a partir de 12 semanas. Previne parainfluenza canina e Bordetella bronchiseptica. São 2 doses, com intervalo de 21 dias. R$ 80,00 por dose.",
+      "- Giardíase — a partir de 12 semanas. Previne a giardíase. São 2 doses, com intervalo de 21 dias. R$ 70,00 por dose.",
+      "- Antirrábica — a partir de 16 semanas. Previne a raiva. São 2 doses, com intervalo de 21 dias. R$ 50,00 por dose.",
+      "Observação: não precisa de consulta nem jejum para vacinar. A vacinação de gatos tem tabela própria (informar com um atendente até ser cadastrada).",
+    ].join("\n");
+    if (typeof d.infoIA !== "string") d.infoIA = "";
+    if (!d.infoIA.includes(marca6)) d.infoIA = (d.infoIA + bloco6).trim();
+    d._conhecimentoLecoland6 = true; mudou = true;
+  }
   return mudou;
 }
 
