@@ -210,6 +210,23 @@ function migrar(d) {
     if (!d.infoIA.includes(marca6)) d.infoIA = (d.infoIA + bloco6).trim();
     d._conhecimentoLecoland6 = true; mudou = true;
   }
+  // Conhecimento — parte 7 (vacinação de gatos).
+  if (!d._conhecimentoLecoland7) {
+    const marca7 = "=== Vacinação de gatos (Lecoland) ===";
+    const bloco7 = [
+      "",
+      "",
+      marca7,
+      "VACINAÇÃO DE GATOS (principais vacinas):",
+      "- V5/FeLV — R$ 60,00 por dose. São 12 doses com intervalo de 21 dias (vacina para filhotes). Protege contra as principais doenças dos felinos.",
+      "- Antirrábica (raiva) — R$ 50,00.",
+      "- V4 — R$ 90,00.",
+      "Observação: não precisa de consulta nem jejum para vacinar.",
+    ].join("\n");
+    if (typeof d.infoIA !== "string") d.infoIA = "";
+    if (!d.infoIA.includes(marca7)) d.infoIA = (d.infoIA + bloco7).trim();
+    d._conhecimentoLecoland7 = true; mudou = true;
+  }
   return mudou;
 }
 

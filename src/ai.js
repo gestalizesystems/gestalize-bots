@@ -119,7 +119,8 @@ function buscarProdutos({ grupo, subgrupo, especificacao, texto, ordenarPor } = 
     if (sg && !casaLista(p.subgrupos, sg)) return false;
     if (esp && !casaLista(p.especificacoes, esp)) return false;
     if (palavrasTx.length) {
-      const alvo = norm(p.nome) + " " + norm(p.descricao);
+      // casa também contra as tags (grupo/subgrupos/especificações), não só nome/descrição
+      const alvo = [p.nome, p.descricao, p.grupo, ...(p.subgrupos || []), ...(p.especificacoes || [])].map(norm).join(" ");
       if (!palavrasTx.every((w) => alvo.includes(w))) return false;
     }
     return true;
@@ -246,6 +247,8 @@ function montarContexto(cliente) {
     "- MARCAS SÓ DE GATO: Matisse, Chanin, Katbom e Friskies são rações de GATO (não existem pra cão). Se o cliente citar uma dessas marcas, NÃO pergunte 'cão ou gato' — busque DIRETO (ex.: 'matisse castrado frango') e mande o valor.",
     "- AREIA (FARDO): 1 fardo de areia = 5 unidades (vale pra todas as areias). Se o cliente falar em 'fardo', considere 5 unidades.",
     "- MAIS BARATO / MAIS EM CONTA: se o cliente pedir o item mais barato ou 'mais em conta' (ex.: 'qual a areia mais em conta?'), CHAME buscar_produtos com ordenarPor='preco' e indique o de MENOR preço entre os resultados.",
+    "- ROUPA CIRÚRGICA: temos para cães e gatos. PERGUNTE o PESO do pet e busque no catálogo com buscar_produtos por 'roupa cirurgica' + o peso (os nomes dos produtos trazem o peso). Mostre a que corresponde ao peso informado.",
+    "- VERMÍFUGO (remédio de verme): PERGUNTE se é cão ou gato e busque com buscar_produtos usando o termo do animal + 'verme' (ex.: texto 'verme cao' ou 'verme gato'). Os produtos estão marcados com as tags medicamento / cão-ou-gato / verme.",
     "- Se o cliente JÁ deu os detalhes necessários (ex.: 'ração premium pra cão filhote', cita uma marca), busque DIRETO — não fique perguntando à toa.",
     "- Quando buscar_produtos retornar produtos, dê uma resposta CURTA de introdução (ex.: 'Achei essas opções pra você 🐾'). NÃO liste os produtos em texto: as FOTOS de cada produto (com nome e preço) são enviadas automaticamente logo depois da sua mensagem.",
     "- Se NÃO TEMOS exatamente o que o cliente pediu (buscar_produtos voltou 0), NÃO encaminhe logo: diga 'Não temos essa(e) [ração/produto], mas vou te enviar algumas opções parecidas 🐾' e CHAME buscar_produtos DE NOVO com uma busca MAIS AMPLA (sem a marca — ex.: 'racao gato filhote') pra mandar alternativas. Vale pra qualquer produto (ração, vermífugo, etc.). Só se mesmo assim não achar nada, CHAME encaminhar_para_atendente.",
