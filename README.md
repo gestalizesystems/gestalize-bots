@@ -1,6 +1,22 @@
-# Gestalize Bots
+<p align="center">
+  <img src="./banner.png" alt="Gestalize Bots Banner" width="100%">
+</p>
 
-AI-assisted customer service automation for WhatsApp, built for pet retail and veterinary businesses.
+<h1 align="center">Gestalize Bots</h1>
+
+<p align="center">
+  AI-Powered WhatsApp Automation Platform
+</p>
+
+<p align="center">
+  Automate conversations, customer service, sales and business workflows using AI.
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=000000" alt="JavaScript"/>
+  <img src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript"/>
+  <img src="https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL"/>
+</p>
 
 ## Overview
 
