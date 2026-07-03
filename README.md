@@ -1,10 +1,10 @@
-# Lecoland
+# Gestalize Bots
 
 AI-assisted customer service automation for WhatsApp, built for pet retail and veterinary businesses.
 
 ## Overview
 
-Lecoland is a conversational customer service platform that automates first-line support on WhatsApp. It answers customer inquiries in natural language, quotes deliveries, searches the product catalog, and routes complex requests to human staff. A web-based administration panel allows non-technical operators to manage every part of the experience — business information, menus, pricing, catalog, and knowledge base — without writing code.
+Gestalize Bots is a conversational customer service platform that automates first-line support on WhatsApp. It answers customer inquiries in natural language, quotes deliveries, searches the product catalog, and routes complex requests to human staff. A web-based administration panel allows non-technical operators to manage every part of the experience — business information, menus, pricing, catalog, and knowledge base — without writing code.
 
 The platform is designed to operate as an always-available assistant that resolves routine questions instantly while preserving a seamless path to human attention when it matters.
 
@@ -14,7 +14,7 @@ Pet shops and veterinary clinics receive a continuous stream of repetitive messa
 
 ## Solution
 
-Lecoland provides an automated first line of support that responds instantly to common inquiries and escalates to a human operator only when necessary. Responses are grounded strictly in the business's own data, so the assistant does not invent prices, services, or availability. When a conversation requires human involvement, it is transferred with an automatically generated summary, allowing staff to continue without re-reading the full exchange.
+Gestalize Bots provides an automated first line of support that responds instantly to common inquiries and escalates to a human operator only when necessary. Responses are grounded strictly in the business's own data, so the assistant does not invent prices, services, or availability. When a conversation requires human involvement, it is transferred with an automatically generated summary, allowing staff to continue without re-reading the full exchange.
 
 Because the entire experience is managed through a web panel, the business can adapt messages, pricing, catalog, and rules on its own and in real time.
 
@@ -79,4 +79,4 @@ Screenshots will be added here.
 
 ## License
 
-Proprietary software. All rights reserved.
+Gestalize Bots is proprietary software developed and maintained by Gestalize Systems. All rights reserved.
