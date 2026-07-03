@@ -179,6 +179,19 @@ function migrar(d) {
     if (!d.infoIA.includes(marca4)) d.infoIA = (d.infoIA + bloco4).trim();
     d._conhecimentoLecoland4 = true; mudou = true;
   }
+  // Conhecimento operacional — parte 5 (pagamento).
+  if (!d._conhecimentoLecoland5) {
+    const marca5 = "=== Operação da Lecoland (parte 5) ===";
+    const bloco5 = [
+      "",
+      "",
+      marca5,
+      "PAGAMENTO: aceitamos PIX, dinheiro e cartão, no ATO DA ENTREGA. Parcelamos em até 6x SEM JUROS, dependendo do valor final da entrega.",
+    ].join("\n");
+    if (typeof d.infoIA !== "string") d.infoIA = "";
+    if (!d.infoIA.includes(marca5)) d.infoIA = (d.infoIA + bloco5).trim();
+    d._conhecimentoLecoland5 = true; mudou = true;
+  }
   return mudou;
 }
 
