@@ -5,7 +5,7 @@
 <h1 align="center">Gestalize Bots</h1>
 
 <p align="center">
-  Intelligent Business Automation for WhatsApp
+  AI-Powered Customer Communication Platform
 </p>
 
 <p align="center">
@@ -22,7 +22,21 @@
 
 Gestalize Bots is an AI-powered WhatsApp automation platform that enables businesses to automate customer communication, streamline support, qualify leads, manage conversations and integrate intelligent workflows into their daily operations.
 
-Designed for organizations of all sizes, the platform combines conversational AI, business automation and a configurable administration panel, allowing non-technical teams to customize the entire customer experience without writing code.
+Designed for organizations of all sizes, the platform combines conversational AI, business automation and a configurable administration panel, enabling organizations to configure conversations, workflows and business knowledge without writing code.
+
+## Use Cases
+
+Gestalize Bots can be adapted to a wide range of industries, including:
+
+- Retail & E-commerce
+- Healthcare
+- Veterinary Clinics
+- Restaurants
+- Professional Services
+- Education
+- Real Estate
+- Customer Support
+- Internal Business Operations
 
 ## Business Problem
 
@@ -34,7 +48,7 @@ As organizations grow, maintaining fast, personalized and scalable communication
 
 ## Solution
 
-Gestalize Bots provides an intelligent automation layer for WhatsApp that handles routine conversations, retrieves business information, executes predefined workflows and escalates complex requests to human operators whenever necessary.
+Gestalize Bots provides an intelligent automation layer for WhatsApp that handles routine conversations, retrieves organization-specific knowledge, executes predefined workflows and escalates complex requests to human operators whenever necessary.
 
 The platform combines AI-powered conversations with configurable business rules, ensuring responses remain accurate, consistent and aligned with each organization's data and processes.
 
@@ -46,13 +60,13 @@ The platform combines AI-powered conversations with configurable business rules,
 - Location-based pricing and routing
 - Customer CRM with custom records, tags and internal notes
 - Intelligent human handoff with automatically generated conversation summaries
-- Voice message transcription and document reading
-- Product recognition from customer-submitted images
+- Voice and document understanding
+- AI-powered image analysis
 - Customer satisfaction surveys with reporting
-- Broadcast campaigns to segmented audiences
+- Audience segmentation and broadcast campaigns
 - Operational metrics dashboard
 - Business-hours and holiday awareness
-- Team directory recognition
+- Smart team routing
 - Complete web administration panel, no code required
 
 ## Architecture Overview
@@ -75,7 +89,6 @@ This architecture enables the platform to remain scalable, maintainable and adap
 | Natural language | Google Gemini |
 | Geolocation and routing | OpenRouteService |
 | Administration panel | Server-rendered HTML, CSS, and JavaScript |
-| Persistence | File-based structured storage |
 
 ## Project Structure
 
