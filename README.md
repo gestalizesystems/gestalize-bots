@@ -5,11 +5,15 @@
 <h1 align="center">Gestalize Bots</h1>
 
 <p align="center">
-  AI-Powered Customer Communication Platform
+  AI-Powered WhatsApp Business Platform
 </p>
 
 <p align="center">
   Automate conversations, customer service, sales and business workflows using AI.
+</p>
+
+<p align="center">
+  ### Developed by Gestalize Systems
 </p>
 
 <p align="center">
@@ -52,22 +56,24 @@ Gestalize Bots provides an intelligent automation layer for WhatsApp that handle
 
 The platform combines AI-powered conversations with configurable business rules, ensuring responses remain accurate, consistent and aligned with each organization's data and processes.
 
-## Key Features
+### AI
 
-- Natural-language responses grounded in the business's configured data
-- Keyword-based triage and guided, numbered menus
-- Catalog and service management with search and image-based responses
-- Location-based pricing and routing
-- Customer CRM with custom records, tags and internal notes
-- Intelligent human handoff with automatically generated conversation summaries
+- Natural-language conversations
 - Voice and document understanding
 - AI-powered image analysis
-- Customer satisfaction surveys with reporting
-- Audience segmentation and broadcast campaigns
-- Operational metrics dashboard
-- Business-hours and holiday awareness
+
+### Customer Engagement
+
+- Audience segmentation
+- Broadcast campaigns
+- Customer satisfaction surveys
+
+### Business Operations
+
+- CRM
+- Catalog and service management
 - Smart team routing
-- Complete web administration panel, no code required
+- Operational dashboard
 
 ## Architecture Overview
 
@@ -90,15 +96,13 @@ This architecture enables the platform to remain scalable, maintainable and adap
 | Geolocation and routing | OpenRouteService |
 | Administration panel | Server-rendered HTML, CSS, and JavaScript |
 
-## Project Structure
+## Platform Modules
 
-At a high level, the codebase is organized into cohesive modules:
-
-- Messaging integration — inbound webhook handling and outbound message delivery
-- Conversation engine — triage, menus, dialog state, and human handoff
-- AI service — grounded responses, catalog search, transcription, and document reading
-- Administration panel — configuration interface and management endpoints
-- Data layer — business configuration, product catalog, customer records, and analytics
+- Messaging Layer
+- AI Engine
+- Administration Panel
+- Business Logic
+- Data Management
 
 ## Screenshots
 
