@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  ### Developed by Gestalize Systems
+  Developed by Gestalize Systems
 </p>
 
 <p align="center">
