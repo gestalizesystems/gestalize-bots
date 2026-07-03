@@ -67,13 +67,32 @@ At a high level, the codebase is organized into cohesive modules:
 
 ## Screenshots
 
-![Administration dashboard](docs/screenshots/dashboard.png)
+<p align="center">
+  <img src="docs/screenshots/dashboard.png" alt="Administration dashboard" width="85%" />
+  <br />
+  <sub><b>Administration dashboard</b></sub>
+</p>
 
-![Product catalog](docs/screenshots/catalog.png)
+<table>
+  <tr>
+    <td width="50%" align="center" valign="top">
+      <img src="docs/screenshots/catalog.png" alt="Product catalog" />
+      <br />
+      <sub><b>Product catalog</b></sub>
+    </td>
+    <td width="50%" align="center" valign="top">
+      <img src="docs/screenshots/team.png" alt="Team management" />
+      <br />
+      <sub><b>Team management</b></sub>
+    </td>
+  </tr>
+</table>
 
-![Team](docs/screenshots/team.png)
-
-![WhatsApp conversation](docs/screenshots/conversation.png)
+<p align="center">
+  <img src="docs/screenshots/conversation.png" alt="WhatsApp conversation" width="300" />
+  <br />
+  <sub><b>WhatsApp conversation</b></sub>
+</p>
 
 ## Future Improvements
 
