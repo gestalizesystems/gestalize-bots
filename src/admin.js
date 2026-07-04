@@ -16,6 +16,7 @@ const equipe = require("./equipe");
 const metricas = require("./metricas");
 const campanhas = require("./campanhas");
 const wa = require("./wa");
+const onboard = require("./waonboard");
 const ai = require("./ai");
 
 const PUBLIC_DIR = path.join(__dirname, "..", "public");
@@ -277,6 +278,46 @@ function iniciarAdmin(porta) {
 
   // Painel
   // (a rota "/" pública já foi definida acima — landing/painel conforme login)
+
+  // ---- Conexão do WhatsApp (Embedded Signup / Coexistência) ----
+  // Página do fluxo de conexão (abre a janela oficial da Meta).
+  app.get("/conectar-whatsapp", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "conectar-whatsapp.html")));
+
+  // Config pública pro front iniciar o SDK do Facebook (sem o App Secret).
+  app.get("/api/wa/config", (req, res) => res.json(onboard.configPublica()));
+
+  // Status atual da conexão (mostra número conectado, se está por coexistência, etc.).
+  app.get("/api/wa/status", (req, res) => {
+    const c = onboard.getCredenciais();
+    res.json({
+      conectado: !!(c && c.token && c.phoneId),
+      numero: (c && c.numero) || "",
+      nomeVerificado: (c && c.nomeVerificado) || "",
+      coexistencia: !!(c && c.coexistencia),
+      conectadoEm: (c && c.conectadoEm) || null,
+      embeddedPronto: onboard.embeddedPronto(),
+      envFallback: !!(process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_ID),
+    });
+  });
+
+  // Recebe o code + ids do Embedded Signup, troca por token, inscreve nos webhooks e salva.
+  app.post("/api/wa/connect", async (req, res) => {
+    try {
+      const { code, waba_id, phone_number_id } = req.body || {};
+      const creds = await onboard.conectar({ code, wabaId: waba_id, phoneId: phone_number_id });
+      estado.whatsappConectado = wa.configurado();
+      res.json({ ok: true, numero: creds.numero, nomeVerificado: creds.nomeVerificado });
+    } catch (e) {
+      res.status(400).json({ ok: false, erro: e.message });
+    }
+  });
+
+  // Desconecta o número (remove as credenciais salvas; volta pro fallback do .env, se houver).
+  app.post("/api/wa/desconectar", (req, res) => {
+    onboard.limparCredenciais();
+    estado.whatsappConectado = wa.configurado();
+    res.json({ ok: true });
+  });
 
   // Configuração do bot
   app.get("/api/config", (req, res) => res.json(config.get()));
