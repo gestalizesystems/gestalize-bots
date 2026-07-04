@@ -30,7 +30,7 @@
     }
     * { box-sizing: border-box; }
     body { margin: 0; font-family: "Poppins", -apple-system, system-ui, sans-serif; color: var(--texto);
-      background: radial-gradient(900px 640px at 12% 2%, #1b2c58 0%, transparent 55%), linear-gradient(140deg, #0b1120 0%, #0a0e1a 55%, #090c14 100%); min-height: 100vh; position: relative; overflow-x: hidden; }
+      background: #0a0e18; min-height: 100vh; position: relative; overflow-x: hidden; }
 
     /* ===== Decorações de fundo ===== */
     .deco { position: fixed; pointer-events: none; z-index: 0; }
@@ -45,6 +45,8 @@
     .deco-veil { top: 6%; left: 0; width: 52%; height: 84%;
       background: radial-gradient(ellipse 62% 56% at 42% 50%, rgba(9,13,24,.78), rgba(9,13,24,0) 72%); }
     .deco-wave { top: 0; left: 0; width: 100%; height: 100%; opacity: .95; }
+    /* remove as listras (ondas) e as formas navy; mantém os pontos e as letras */
+    .deco-blob2, .deco-blob3, .deco-wave, .deco-veil { display: none; }
 
     /* ===== Layout ===== */
     .wrap { position: relative; z-index: 1; max-width: 1120px; margin: 0 auto; min-height: 100vh;

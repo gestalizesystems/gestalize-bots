@@ -326,9 +326,9 @@ async function processar(from, texto, nomeWpp) {
       } else {
         aguardandoNome.add(from); // cliente novo → pergunta o nome antes do menu
         menuContexto.delete(from);
-        r.resposta = config.preencher(dados.mensagens.saudacaoNome || "Olá! 🐾 Seja muito bem-vindo(a) à {nome}! Antes de começar, como posso te chamar? 😊");
+        r.resposta = config.preencher(dados.mensagens.saudacaoNome || "Olá! 🐾 Seja muito bem-vindo(a) à {nome}! Antes de começar, como posso te chamar? 😊")
+          + "\n\n" + AVISO_SISTEMA; // aviso do novo sistema — SOMENTE para clientes novos (sem nome ainda)
       }
-      r.resposta += "\n\n" + AVISO_SISTEMA; // aviso do novo sistema, sempre junto da saudação
     }
   }
 
