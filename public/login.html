@@ -296,6 +296,7 @@
         const W = innerWidth, H = innerHeight;
         const gw = COLS * ESP, gh = ROWS * ESP;
         grade(42, 40, COLS, ROWS, ESP);               // superior esquerdo
+        grade(W - gw - 40, 40, COLS, ROWS, ESP);      // superior direito
         grade(42, H - gh - 130, COLS, ROWS, ESP);     // inferior esquerdo (subiu p/ não colidir com as ondas)
         grade(W - gw - 40, H - gh - 40, COLS, ROWS, ESP); // inferior direito
         // grupo ao lado do título "Gestalize Bots" (centralizado verticalmente nele)
