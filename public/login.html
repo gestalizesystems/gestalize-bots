@@ -45,8 +45,8 @@
     .deco-veil { top: 6%; left: 0; width: 52%; height: 84%;
       background: radial-gradient(ellipse 62% 56% at 42% 50%, rgba(9,13,24,.78), rgba(9,13,24,0) 72%); }
     .deco-wave { top: 0; left: 0; width: 100%; height: 100%; opacity: .95; }
-    /* remove as listras (ondas) e as formas navy; mantém os pontos e as letras */
-    .deco-blob2, .deco-blob3, .deco-wave, .deco-veil { display: none; }
+    /* remove as listras (ondas) e as formas navy; o glow de fundo agora é desenhado atrás de cada grupo de pontinhos */
+    .deco-blob1, .deco-blob2, .deco-blob3, .deco-wave, .deco-veil { display: none; }
 
     /* ===== Layout ===== */
     .wrap { position: relative; z-index: 1; max-width: 1120px; margin: 0 auto; min-height: 100vh;
@@ -271,12 +271,12 @@
     (function () {
       const canvas = document.getElementById("dotsCanvas");
       const ctx = canvas.getContext("2d");
-      const COR = "rgba(150,180,240,0.20)", RAIO = 1.6;
+      const COR = "rgba(150,180,240,0.20)", RAIO = 1.6, GLOW = 300;
       const ALCANCE = 150;   // distância em que o cursor começa a empurrar
       const FORCA = 6;       // intensidade do empurrão (quanto eles correm)
       const MOLA = 0.012;    // força que puxa de volta à posição original
       const ATRITO = 0.88;   // desaceleração (suaviza o movimento)
-      let dots = [], mx = -9999, my = -9999;
+      let dots = [], centros = [], mx = -9999, my = -9999;
 
       function grade(ox, oy, cols, rows, esp) {
         const cx = (cols - 1) / 2, cy = (rows - 1) / 2;
@@ -291,20 +291,23 @@
             dots.push({ hx: x, hy: y, x, y, vx: 0, vy: 0, a });
           }
       }
-      const COLS = 18, ROWS = 18, ESP = 11; // grade quadrada → recortada em círculo
+      const COLS = 36, ROWS = 36, ESP = 11; // grade quadrada → recortada em círculo (tamanho dobrado)
       function gerar() {
-        dots = [];
+        dots = []; centros = [];
         const W = innerWidth, H = innerHeight;
         const gw = COLS * ESP, gh = ROWS * ESP;
-        grade(42, 40, COLS, ROWS, ESP);               // superior esquerdo
-        grade(W - gw - 40, 40, COLS, ROWS, ESP);      // superior direito
-        grade(42, H - gh - 130, COLS, ROWS, ESP);     // inferior esquerdo (subiu p/ não colidir com as ondas)
-        grade(W - gw - 40, H - gh - 40, COLS, ROWS, ESP); // inferior direito
+        const grupos = [
+          [42, 40],                    // superior esquerdo
+          [W - gw - 40, 40],           // superior direito
+          [42, H - gh - 130],          // inferior esquerdo
+          [W - gw - 40, H - gh - 40],  // inferior direito
+        ];
         // grupo ao lado do título "Gestalize Bots" (centralizado verticalmente nele)
         const wm = document.querySelector(".wordmark");
-        if (wm) {
-          const r = wm.getBoundingClientRect();
-          if (r.width > 0) grade(r.right + 26, r.top + r.height / 2 - gh / 2, COLS, ROWS, ESP);
+        if (wm) { const r = wm.getBoundingClientRect(); if (r.width > 0) grupos.push([r.right + 26, r.top + r.height / 2 - gh / 2]); }
+        for (const [ox, oy] of grupos) {
+          grade(ox, oy, COLS, ROWS, ESP);
+          centros.push([ox + gw / 2, oy + gh / 2]); // guarda o centro p/ o glow de fundo
         }
       }
       function dimensoes() {
@@ -319,6 +322,14 @@
 
       function loop() {
         ctx.clearRect(0, 0, innerWidth, innerHeight);
+        // ponto de luz (glow) de fundo atrás de cada grupo
+        for (const [cx, cy] of centros) {
+          const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, GLOW);
+          g.addColorStop(0, "rgba(75,125,235,0.16)");
+          g.addColorStop(1, "rgba(75,125,235,0)");
+          ctx.fillStyle = g;
+          ctx.fillRect(cx - GLOW, cy - GLOW, GLOW * 2, GLOW * 2);
+        }
         ctx.fillStyle = COR;
         for (const d of dots) {
           // empurrão a partir da posição ATUAL (eles continuam fugindo enquanto o cursor chega perto)
