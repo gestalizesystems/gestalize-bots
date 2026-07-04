@@ -168,13 +168,18 @@
     white-space: nowrap;
     color: var(--white);
     backdrop-filter: blur(8px);
-    animation: pop 0.4s ease both;
+    animation: pop 0.4s ease both, bob 4.5s ease-in-out infinite;
   }
-  .bubble-1 { top: 0; right: -160px; animation-delay: 0.2s; }
-  .bubble-2 { bottom: 10px; left: -180px; animation-delay: 0.5s; color: var(--blue-lt); }
+  .bubble-1 { top: 22px; right: -150px; animation-delay: 0.2s, 0.4s; }
+  .bubble-2 { top: 78px; left: -160px; animation-delay: 0.5s, 0.9s; }
+  .bubble-3 { bottom: -6px; right: -110px; animation-delay: 0.8s, 1.3s; }
   @keyframes pop {
     from { opacity:0; transform: scale(0.85); }
     to   { opacity:1; transform: scale(1); }
+  }
+  @keyframes bob {
+    0%,100% { transform: translateY(0); }
+    50%     { transform: translateY(-7px); }
   }
 
   /* ── LOGOS / SOCIAL PROOF ── */
@@ -449,7 +454,8 @@
   <div class="hero-visual">
     <img class="robot" src="/robot.png" alt="Gestalize Bots" />
     <div class="chat-bubble bubble-1">💬 Olá! Como posso ajudar?</div>
-    <div class="chat-bubble bubble-2">✦ IA treinada</div>
+    <div class="chat-bubble bubble-2">🛵 Taxa de entrega: R$ 8,00</div>
+    <div class="chat-bubble bubble-3">✓ Pedido encaminhado!</div>
   </div>
 </section>
 
