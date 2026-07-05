@@ -84,22 +84,39 @@ async function infoNumero(phoneId, token) {
   } catch (_) { return {}; }
 }
 
-// Fluxo completo do "Conectar WhatsApp": recebe o code + ids vindos do Embedded Signup,
-// obtém o token, inscreve nos webhooks e guarda as credenciais que o bot vai usar.
+// Lista os números de uma WABA. Na COEXISTÊNCIA o Embedded Signup costuma devolver só o
+// waba_id — então buscamos aqui o phone_number_id do número que a loja acabou de autorizar.
+async function listarNumeros(wabaId, token) {
+  const res = await fetch(`${GRAPH}/${VERSAO}/${wabaId}/phone_numbers?fields=id,display_phone_number,verified_name`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error("Falha ao listar números da WABA: " + ((data.error && data.error.message) || res.status));
+  return Array.isArray(data.data) ? data.data : [];
+}
+
+// Fluxo completo do "Conectar WhatsApp": recebe o code (+ ids) do Embedded Signup, obtém o
+// token, inscreve nos webhooks, descobre o número (se não veio) e guarda as credenciais.
 async function conectar({ code, wabaId, phoneId }) {
   if (!code) throw new Error("Faltou o 'code' do Embedded Signup.");
-  if (!wabaId || !phoneId) throw new Error("Faltou o waba_id / phone_number_id (retornados pela janela da Meta).");
+  if (!wabaId) throw new Error("Faltou o waba_id (retornado pela janela da Meta).");
   const token = await trocarCodePorToken(code);
   await inscreverApp(wabaId, token);
-  const info = await infoNumero(phoneId, token);
+
+  let numero = "", nomeVerificado = "";
+  if (!phoneId) {
+    // Coexistência: o front só recebeu o waba_id → busca o número na conta.
+    const nums = await listarNumeros(wabaId, token);
+    if (!nums.length) throw new Error("Nenhum número encontrado na conta. Confirme a autorização no app do WhatsApp Business (versão 2.24.17+).");
+    phoneId = nums[0].id; numero = nums[0].display_phone_number || ""; nomeVerificado = nums[0].verified_name || "";
+  } else {
+    const info = await infoNumero(phoneId, token);
+    numero = info.display_phone_number || ""; nomeVerificado = info.verified_name || "";
+  }
+
   return salvarCredenciais({
-    token,
-    phoneId,
-    wabaId,
-    numero: info.display_phone_number || "",
-    nomeVerificado: info.verified_name || "",
-    conectadoEm: new Date().toISOString(),
-    coexistencia: true,
+    token, phoneId, wabaId, numero, nomeVerificado,
+    conectadoEm: new Date().toISOString(), coexistencia: true,
   });
 }
 
