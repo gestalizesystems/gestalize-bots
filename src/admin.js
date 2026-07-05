@@ -180,6 +180,8 @@ function iniciarAdmin(porta) {
   // Nomes de arquivo são únicos por upload → pode cachear forte (carrega 1x e não "some" mais).
   app.use("/uploads", express.static(UPLOAD_DIR, { maxAge: "30d", immutable: true }));
   app.get("/robot.png", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "robot.png")));
+  // Screenshots do produto usados na landing pública (dashboard, catálogo, conversa).
+  app.use("/screenshots", express.static(path.join(PUBLIC_DIR, "screenshots"), { maxAge: "7d" }));
   app.get("/favicon.ico", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "robot.png")));
   app.get("/og-gestalize.png", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "og-gestalize.png")));
   app.get("/og-gestalize-wide.png", (req, res) => res.sendFile(path.join(PUBLIC_DIR, "og-gestalize-wide.png")));
