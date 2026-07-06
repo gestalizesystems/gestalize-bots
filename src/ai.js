@@ -131,6 +131,9 @@ const SINONIMOS = {
 // Palavras GENÉRICAS de categoria (não identificam a marca/item) — dropadas PRIMEIRO no relaxamento,
 // pra não sequestrar a busca (ex.: "ração chanin" nunca deve virar "ração" e trazer outra marca).
 const GENERICOS = new Set(["racao", "racoes", "comida", "alimento", "produto", "item", "sabor", "racaozinha"]);
+// "Saca / saco / fechada / pacote" = ração ENSACADA (fechada) — o oposto de granel. Quando aparece,
+// a busca EXCLUI os produtos a granel e mostra só as sacas fechadas (7,5kg, 10kg, 15kg, 20kg, 25kg...).
+const SACA = new Set(["saca", "sacas", "saco", "sacos", "sacaria", "fechada", "fechado", "fechadas", "pacote", "pacotes", "ensacada", "ensacado"]);
 // Palavras-ÂNCORA: nunca são relaxadas. A ESPÉCIE (cão/gato) impede misturar as duas espécies;
 // granel/quilo garante que "a quilo" só traga produtos a granel.
 const ANIMAIS = new Set(["gato", "gata", "gatos", "cat", "felino", "felina", "cao", "caes", "cachorro", "cachorros", "cadela", "dog", "canino", "canina"]);
@@ -147,7 +150,10 @@ function buscarProdutos({ grupo, subgrupo, especificacao, texto, ordenarPor } = 
   const cat = config.get().catalogo || {};
   const produtos = (cat.produtos || []).filter((p) => p && p.ativo !== false);
   const g = norm(grupo), sg = norm(subgrupo), esp = norm(especificacao), tx = norm(texto);
-  const palavrasTx = tx.split(/\s+/).filter((w) => w && !STOPWORDS.has(w)); // casa por PALAVRA (qualquer ordem), sem conectivos
+  let palavrasTx = tx.split(/\s+/).filter((w) => w && !STOPWORDS.has(w)); // casa por PALAVRA (qualquer ordem), sem conectivos
+  // "saca / saco / fechada / pacote" = ração ensacada → exclui granel. É modificador, sai da busca por texto.
+  const querSaca = palavrasTx.some((w) => SACA.has(w));
+  palavrasTx = palavrasTx.filter((w) => !SACA.has(w));
   const casa = (valor, alvo) => valor && (norm(valor).includes(alvo) || alvo.includes(norm(valor)));
   const casaLista = (lista, alvo) => Array.isArray(lista) && lista.some((x) => casa(x, alvo));
   // Alvo da busca por texto: nome + descrição + tags (grupo/subgrupos/especificações).
@@ -170,10 +176,9 @@ function buscarProdutos({ grupo, subgrupo, especificacao, texto, ordenarPor } = 
     if (g && !casa(p.grupo, g)) return false;
     if (sg && !casaLista(p.subgrupos, sg)) return false;
     if (esp && !casaLista(p.especificacoes, esp)) return false;
-    if (palavras.length) {
-      const alvo = alvoDe(p);
-      if (!palavras.every((w) => casaPalavra(alvo, w))) return false;
-    }
+    const alvo = alvoDe(p);
+    if (querSaca && (alvo.includes("granel") || alvo.includes("fracionad"))) return false; // "saca" exclui granel
+    if (palavras.length && !palavras.every((w) => casaPalavra(alvo, w))) return false;
     return true;
   });
 
@@ -330,6 +335,7 @@ function montarContexto(cliente) {
     "- A GRANEL / QUILO / KG / FRACIONADO: quando o cliente falar em QUILO, KILO, KG, GRANEL ou FRACIONADO (ex.: 'rações no quilo', '1kg de ração', 'tem fracionada?'), ele se refere às rações a GRANEL. SEMPRE busque com o texto 'granel <espécie>' — ex.: 'granel gato' ou 'granel cao' (nunca só 'quilo' nem só 'granel' sem a espécie).",
     "- ESPÉCIE (NUNCA MISTURE): se o cliente pediu para GATO, só ofereça produtos de GATO; se pediu para CÃO, só de CÃO. É PROIBIDO mostrar ração/produto de cão quando pediram para gato (e vice-versa). Se não tivermos para a espécie pedida, diga que não temos e ofereça buscar outra opção PARA A MESMA ESPÉCIE — nunca sugira a outra espécie.",
     "- MARCAS DE UMA ESPÉCIE SÓ: algumas marcas de ração são só de cão ou só de gato (veja a base de conhecimento). Se o cliente citar uma dessas marcas, NÃO pergunte 'cão ou gato' — busque DIRETO pela marca e mande o valor.",
+    "- MARCA DE RAÇÃO — SACA OU GRANEL: quando o cliente perguntar se temos uma MARCA de ração (ex.: 'tem chanin?', 'quanto tá a golden?', 'chanin 1kg') e NÃO deixar claro o tamanho, PERGUNTE PRIMEIRO: 'Você quer em *saca* (fechada) ou a *granel* (por quilo)? 🐾'. Se ele responder SACA, CHAME buscar_produtos com texto 'saca <marca>' (as sacas fechadas: 7,5kg, 10kg, 15kg, 20kg, 25kg...). Se responder GRANEL, CHAME buscar_produtos com texto 'granel <marca>' e mande os valores dos graneis. (Se a marca só existir a granel ou só em saca, não precisa perguntar — mande direto o que temos.)",
     "- MARCA PEDIDA — NUNCA SUBSTITUA: se o cliente cita uma MARCA específica (ex.: 'chanin', 'golden', 'fargo', 'zuppy'), você DEVE chamar buscar_produtos com o NOME DELA e só mostrar produtos DESSA marca. É TERMINANTEMENTE PROIBIDO mostrar outra marca como se fosse a pedida. Se buscar_produtos NÃO retornar a marca pedida, NÃO mande outra marca: responda EXATAMENTE 'Não temos a marca [X] no momento, mas posso te mandar outras opções? 🐾' e ESPERE a resposta. Só se o cliente CONFIRMAR (ex.: 'sim', 'pode', 'quero'), aí sim CHAME buscar_produtos com uma busca mais ampla (MESMA espécie, sem a marca) e envie.",
     "- AREIA (FARDO): se o cliente falar em 'fardo', use a quantidade por fardo informada na base de conhecimento.",
     "- MAIS BARATO / MAIS EM CONTA: se o cliente pedir o item mais barato ou 'mais em conta' (ex.: 'qual a areia mais em conta?'), CHAME buscar_produtos com ordenarPor='preco' e indique o de MENOR preço entre os resultados.",
