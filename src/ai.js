@@ -209,6 +209,10 @@ function buscarProdutos({ grupo, subgrupo, especificacao, texto, ordenarPor } = 
 
   if (ordenarPor === "preco") achados.sort((a, b) => precoNum(a.preco) - precoNum(b.preco)); // mais barato primeiro
 
+  // Log de diagnóstico (aparece nos logs do Railway): o que a IA buscou e quantos achou.
+  console.log("[buscar_produtos]", JSON.stringify({ grupo, subgrupo, especificacao, texto, ordenarPor }), "->", achados.length,
+    achados.slice(0, 3).map((p) => p.nome).join(" | "));
+
   return {
     total: achados.length,
     produtos: achados.slice(0, 8).map((p) => ({
@@ -326,6 +330,7 @@ function montarContexto(cliente) {
     "- A GRANEL / QUILO / KG / FRACIONADO: quando o cliente falar em QUILO, KILO, KG, GRANEL ou FRACIONADO (ex.: 'rações no quilo', '1kg de ração', 'tem fracionada?'), ele se refere às rações a GRANEL. SEMPRE busque com o texto 'granel <espécie>' — ex.: 'granel gato' ou 'granel cao' (nunca só 'quilo' nem só 'granel' sem a espécie).",
     "- ESPÉCIE (NUNCA MISTURE): se o cliente pediu para GATO, só ofereça produtos de GATO; se pediu para CÃO, só de CÃO. É PROIBIDO mostrar ração/produto de cão quando pediram para gato (e vice-versa). Se não tivermos para a espécie pedida, diga que não temos e ofereça buscar outra opção PARA A MESMA ESPÉCIE — nunca sugira a outra espécie.",
     "- MARCAS DE UMA ESPÉCIE SÓ: algumas marcas de ração são só de cão ou só de gato (veja a base de conhecimento). Se o cliente citar uma dessas marcas, NÃO pergunte 'cão ou gato' — busque DIRETO pela marca e mande o valor.",
+    "- MARCA PEDIDA — NUNCA SUBSTITUA: se o cliente cita uma MARCA específica (ex.: 'chanin', 'golden', 'fargo', 'zuppy'), você DEVE chamar buscar_produtos com o NOME DELA e só mostrar produtos DESSA marca. É TERMINANTEMENTE PROIBIDO mostrar outra marca como se fosse a pedida. Se buscar_produtos não retornar a marca pedida, diga CLARAMENTE 'Não temos a marca [X] no momento' ANTES de oferecer parecidas — nunca finja que outra marca é a que ele pediu.",
     "- AREIA (FARDO): se o cliente falar em 'fardo', use a quantidade por fardo informada na base de conhecimento.",
     "- MAIS BARATO / MAIS EM CONTA: se o cliente pedir o item mais barato ou 'mais em conta' (ex.: 'qual a areia mais em conta?'), CHAME buscar_produtos com ordenarPor='preco' e indique o de MENOR preço entre os resultados.",
     "- ROUPA CIRÚRGICA: temos para cães e gatos. PERGUNTE o PESO do pet e busque no catálogo com buscar_produtos por 'roupa cirurgica' + o peso (os nomes dos produtos trazem o peso). Mostre a que corresponde ao peso informado.",
