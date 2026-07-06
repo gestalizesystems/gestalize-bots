@@ -56,11 +56,9 @@ const historicoConversa = new Map(); // contactId -> [últimas mensagens do clie
 const ausenciaEnviada = new Map(); // contactId -> instante do último aviso de ausência
 const AUSENCIA_THROTTLE_MS = 60 * 60 * 1000; // não repete a ausência mais de 1x/h por contato
 const inatividade = new Map(); // contactId -> timer de silêncio (reengaja/encerra a conversa do bot)
-const ultimaAtividade = new Map(); // contactId -> instante da última mensagem (reset de contexto obsoleto)
 
 const PAUSA_SILENCIO_MS = 60 * 60 * 1000; // 1h SEM novas mensagens (do cliente OU do bot) → "ainda por aí?"
 const SEM_RESPOSTA_MS = 2 * 60 * 60 * 1000; // sem resposta em 2h após o reengajamento → finaliza
-const RESET_CONVERSA_MS = 2 * 60 * 60 * 1000; // +2h parado → começa uma conversa nova (evita contexto obsoleto)
 
 const FECHO_PALAVRAS = ["nao", "no", "obrigado", "obrigada", "obg", "vlw", "valeu", "era so isso", "so isso", "so isso mesmo", "era isso", "isso mesmo", "tudo certo", "ok", "blz", "beleza", "nada mais", "agradecido", "grato", "grata", "por enquanto so"];
 
@@ -226,24 +224,10 @@ async function processar(from, texto, nomeWpp) {
 
   metricas.inc("recebida"); // métrica: mensagem recebida
 
-  // Cliente respondeu → cancela o reengajamento pendente.
+  // Cliente respondeu → cancela o reengajamento pendente. A MEMÓRIA da conversa é mantida
+  // até o atendimento ser realmente finalizado (despedida do cliente ou silêncio prolongado),
+  // mesmo que ele fique horas parado — assim o bot lembra o assunto (ex.: remédio de verme).
   limparInatividade(from);
-
-  // Conversa parada há muito tempo (cliente sumiu e voltou horas depois) → recomeça LIMPA,
-  // pra não continuar com um contexto obsoleto e responder algo sem sentido (ex.: voltar a
-  // mandar catálogo de outro assunto). Timers se perdem em redeploy — por isso este guarda.
-  const ult = ultimaAtividade.get(from) || 0;
-  if (ult && Date.now() - ult > RESET_CONVERSA_MS) {
-    const fecho = aguardandoFecho.get(from);
-    if (fecho && fecho.timer) clearTimeout(fecho.timer);
-    aguardandoFecho.delete(from);
-    limparHistorico(from);
-    jaSaudou.delete(from);
-    menuContexto.delete(from);
-    aguardandoNome.delete(from);
-    pausados.delete(from);
-  }
-  ultimaAtividade.set(from, Date.now());
 
   // Guarda as últimas mensagens do cliente (em memória) pra montar o resumo no handoff.
   if (texto && String(texto).trim()) {
@@ -306,14 +290,18 @@ async function processar(from, texto, nomeWpp) {
     return;
   }
 
-  // Resposta ao "Posso te ajudar em mais alguma coisa?".
+  // Resposta ao "Ainda por aí?".
   if (aguardandoFecho.has(from)) {
     if (ehFecho(texto)) {
       await finalizar(from, false);
       await encerrarComNps(from, "Atendimento finalizado, qualquer coisa é só chamar! 🐾");
       return;
     }
-    await finalizar(from, false); // trouxe algo novo → começa um atendimento novo
+    // Trouxe algo novo → cancela só o encerramento pendente e CONTINUA a conversa com a
+    // memória intacta (o bot ainda lembra o assunto que estava em andamento).
+    const f = aguardandoFecho.get(from);
+    if (f && f.timer) clearTimeout(f.timer);
+    aguardandoFecho.delete(from);
   }
 
   // Cliente se despediu/agradeceu (ex.: "obrigada", "era só isso") → encerra e pede a nota (NPS).
