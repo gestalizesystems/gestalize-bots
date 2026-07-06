@@ -158,15 +158,16 @@ function buscarProdutos({ grupo, subgrupo, especificacao, texto, ordenarPor } = 
   const casaLista = (lista, alvo) => Array.isArray(lista) && lista.some((x) => casa(x, alvo));
   // Alvo da busca por texto: nome + descrição + tags (grupo/subgrupos/especificações).
   const alvoDe = (p) => [p.nome, p.descricao, p.grupo, ...(p.subgrupos || []), ...(p.especificacoes || [])].map(norm).join(" ");
-  const escapar = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   // Uma palavra casa se QUALQUER um dos seus sinônimos aparecer (ex.: "gato" casa "cat"; "quilo" casa "granel").
   const casaPalavra = (alvo, w) => {
     if (SINONIMOS[w]) return SINONIMOS[w].some((s) => alvo.includes(s));
     if (/^\d/.test(w)) {
-      // Quantidade (ex.: "1kg", "10kg"): casa o tamanho ESCRITO no nome como TOKEN INTEIRO —
-      // não pega "1kg" dentro de "10.1kg". Além disso, "1kg/1quilo" também = ração a GRANEL.
-      if (new RegExp("(?<![\\d.,])" + escapar(w) + "(?![a-z0-9])").test(alvo)) return true;
-      if (/^1(k|kg|kilo|quilo)/.test(w)) return alvo.includes("granel") || alvo.includes("fracionad");
+      // Quantidade (ex.: "7kg", "10kg"): casa o tamanho ESCRITO no nome, com decimal OPCIONAL e
+      // como token inteiro. Ex.: "7kg" casa "7,5KG"; "10kg" casa "10KG" e "10.1KG"; e nunca pega
+      // "1kg" dentro de "10.1kg". Além disso, "1kg/1quilo" também significa ração a GRANEL.
+      const num = (w.match(/^\d+/) || [""])[0]; // parte inteira do tamanho
+      if (num && new RegExp("(?<![\\d.,])" + num + "([.,]\\d+)?\\s*kg(?![a-z0-9])").test(alvo)) return true;
+      if (num === "1" && /^1\s*(k|kg|kilo|quilo)?$/.test(w)) return alvo.includes("granel") || alvo.includes("fracionad");
       return false;
     }
     return alvo.includes(w);
@@ -335,7 +336,8 @@ function montarContexto(cliente) {
     "- A GRANEL / QUILO / KG / FRACIONADO: quando o cliente falar em QUILO, KILO, KG, GRANEL ou FRACIONADO (ex.: 'rações no quilo', '1kg de ração', 'tem fracionada?'), ele se refere às rações a GRANEL. SEMPRE busque com o texto 'granel <espécie>' — ex.: 'granel gato' ou 'granel cao' (nunca só 'quilo' nem só 'granel' sem a espécie).",
     "- ESPÉCIE (NUNCA MISTURE): se o cliente pediu para GATO, só ofereça produtos de GATO; se pediu para CÃO, só de CÃO. É PROIBIDO mostrar ração/produto de cão quando pediram para gato (e vice-versa). Se não tivermos para a espécie pedida, diga que não temos e ofereça buscar outra opção PARA A MESMA ESPÉCIE — nunca sugira a outra espécie.",
     "- MARCAS DE UMA ESPÉCIE SÓ: algumas marcas de ração são só de cão ou só de gato (veja a base de conhecimento). Se o cliente citar uma dessas marcas, NÃO pergunte 'cão ou gato' — busque DIRETO pela marca e mande o valor.",
-    "- MARCA DE RAÇÃO — SACA OU GRANEL: quando o cliente perguntar se temos uma MARCA de ração (ex.: 'tem chanin?', 'quanto tá a golden?', 'chanin 1kg') e NÃO deixar claro o tamanho, PERGUNTE PRIMEIRO: 'Você quer em *saca* (fechada) ou a *granel* (por quilo)? 🐾'. Se ele responder SACA, CHAME buscar_produtos com texto 'saca <marca>' (as sacas fechadas: 7,5kg, 10kg, 15kg, 20kg, 25kg...). Se responder GRANEL, CHAME buscar_produtos com texto 'granel <marca>' e mande os valores dos graneis. (Se a marca só existir a granel ou só em saca, não precisa perguntar — mande direto o que temos.)",
+    "- RAÇÃO — SEMPRE PERGUNTE 'SACA OU GRANEL' ANTES DE ENVIAR: vale para QUALQUER ração (por marca como 'vetlife', 'chanin', 'golden', OU por tipo como 'ração urinária pra gato'). Se o cliente NÃO disse se quer saca ou granel, você DEVE perguntar PRIMEIRO e NÃO enviar nenhum produto ainda: 'Você quer em *saca* (fechada) ou a *granel* (por quilo)? 🐾'. Depois da resposta: SACA → CHAME buscar_produtos com texto 'saca <ração>' (sacas fechadas: 1kg, 7,5kg, 10kg, 15kg, 20kg, 25kg...); GRANEL → texto 'granel <ração>'. Só pule a pergunta se você já tiver certeza de que aquela ração existe SÓ a granel ou SÓ em saca.",
+    "- TAMANHO EM KG = SACA: se o cliente pedir um tamanho específico (ex.: 'de 7kg?', 'tem de 15kg?'), ele quer a SACA fechada desse tamanho — CHAME buscar_produtos com texto 'saca <ração> <tamanho>' (ex.: 'saca vetlife gato 7kg'). NÃO responda com o granel. Se não tiver aquele tamanho em saca, diga que não temos esse tamanho e ofereça os tamanhos/opções que temos.",
     "- MARCA PEDIDA — NUNCA SUBSTITUA: se o cliente cita uma MARCA específica (ex.: 'chanin', 'golden', 'fargo', 'zuppy'), você DEVE chamar buscar_produtos com o NOME DELA e só mostrar produtos DESSA marca. É TERMINANTEMENTE PROIBIDO mostrar outra marca como se fosse a pedida. Se buscar_produtos NÃO retornar a marca pedida, NÃO mande outra marca: responda EXATAMENTE 'Não temos a marca [X] no momento, mas posso te mandar outras opções? 🐾' e ESPERE a resposta. Só se o cliente CONFIRMAR (ex.: 'sim', 'pode', 'quero'), aí sim CHAME buscar_produtos com uma busca mais ampla (MESMA espécie, sem a marca) e envie.",
     "- AREIA (FARDO): se o cliente falar em 'fardo', use a quantidade por fardo informada na base de conhecimento.",
     "- MAIS BARATO / MAIS EM CONTA: se o cliente pedir o item mais barato ou 'mais em conta' (ex.: 'qual a areia mais em conta?'), CHAME buscar_produtos com ordenarPor='preco' e indique o de MENOR preço entre os resultados.",
