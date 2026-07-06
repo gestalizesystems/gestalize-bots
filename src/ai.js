@@ -323,35 +323,45 @@ async function responder(contactId, mensagem) {
   };
   if (MODELO.includes("2.5")) cfg.thinkingConfig = { thinkingBudget: 0 };
 
-  let resp = await ai.models.generateContent({ model: MODELO, contents: working, config: cfg });
-
   let encaminhar = false;
   let motivo = "";
   let produtos = []; // produtos achados na última busca (pra enviar com foto)
-
-  // Loop de function calling (até 3 rodadas).
-  for (let i = 0; i < 3; i++) {
-    const chamadas = resp.functionCalls;
-    if (!chamadas || chamadas.length === 0) break;
-
-    working.push({ role: "model", parts: resp.candidates[0].content.parts });
-    const partesResposta = [];
-    for (const chamada of chamadas) {
-      if (chamada.name === "encaminhar_para_atendente") {
-        encaminhar = true;
-        motivo = (chamada.args && chamada.args.motivo) || "";
-      }
-      const resultado = await executarFuncao(chamada.name, chamada.args, contactId);
-      // Acumula (sem duplicar) os produtos de TODAS as buscas da rodada — ex.: vários itens
-      // de uma receita, ou busca específica + ampla. Antes sobrescrevia e só sobrava a última.
-      if (chamada.name === "buscar_produtos" && resultado && Array.isArray(resultado.produtos)) {
-        for (const p of resultado.produtos) if (!produtos.some((x) => x.nome === p.nome)) produtos.push(p);
-      }
-      partesResposta.push({ functionResponse: { name: chamada.name, response: resultado } });
-    }
-    working.push({ role: "user", parts: partesResposta });
-
+  let resp;
+  try {
     resp = await ai.models.generateContent({ model: MODELO, contents: working, config: cfg });
+
+    // Loop de function calling (até 3 rodadas).
+    for (let i = 0; i < 3; i++) {
+      const chamadas = resp.functionCalls;
+      if (!chamadas || chamadas.length === 0) break;
+
+      working.push({ role: "model", parts: resp.candidates[0].content.parts });
+      const partesResposta = [];
+      for (const chamada of chamadas) {
+        if (chamada.name === "encaminhar_para_atendente") {
+          encaminhar = true;
+          motivo = (chamada.args && chamada.args.motivo) || "";
+        }
+        const resultado = await executarFuncao(chamada.name, chamada.args, contactId);
+        // Acumula (sem duplicar) os produtos de TODAS as buscas da rodada — ex.: vários itens
+        // de uma receita, ou busca específica + ampla. Antes sobrescrevia e só sobrava a última.
+        if (chamada.name === "buscar_produtos" && resultado && Array.isArray(resultado.produtos)) {
+          for (const p of resultado.produtos) if (!produtos.some((x) => x.nome === p.nome)) produtos.push(p);
+        }
+        partesResposta.push({ functionResponse: { name: chamada.name, response: resultado } });
+      }
+      working.push({ role: "user", parts: partesResposta });
+
+      resp = await ai.models.generateContent({ model: MODELO, contents: working, config: cfg });
+    }
+  } catch (e) {
+    // Instabilidade do Gemini (timeout/cota/erro) → NÃO deixa o cliente sem resposta e NÃO
+    // grava histórico quebrado (a próxima mensagem tenta de novo, limpa).
+    console.error("Falha na IA (responder):", e.message);
+    return {
+      texto: "Ops, tive uma instabilidade aqui 🙈 Pode repetir, por favor? Se preferir, digite *atendente* para falar com uma pessoa.",
+      encaminhar: false, motivo: "", produtos: [],
+    };
   }
 
   const texto =

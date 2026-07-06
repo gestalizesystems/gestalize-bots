@@ -80,6 +80,26 @@ function contextoAnuncio(ref) {
   if (!ad) return "";
   return `(O cliente veio de um anúncio do Instagram/Facebook sobre: "${ad}". Reconheça o produto/serviço do anúncio e passe as informações.) `;
 }
+
+// ===== Entrega ordenada e sem duplicatas das mensagens do webhook =====
+// A Meta pode REENTREGAR a mesma mensagem (retry) e o cliente costuma mandar VÁRIAS
+// mensagens seguidas. Aqui: dedup por message.id + fila POR CONTATO (uma de cada vez, em
+// ordem), pra não responder duas vezes nem embaralhar o contexto da IA.
+const msgVistas = new Set();
+function jaProcessada(id) {
+  if (!id) return false;
+  if (msgVistas.has(id)) return true;
+  msgVistas.add(id);
+  if (msgVistas.size > 3000) { const it = msgVistas.values(); for (let i = 0; i < 1000; i++) msgVistas.delete(it.next().value); }
+  return false;
+}
+const filasContato = new Map(); // contactId -> Promise (cauda da fila daquele contato)
+function enfileirar(from, tarefa) {
+  const anterior = filasContato.get(from) || Promise.resolve();
+  const atual = anterior.then(tarefa).catch((e) => console.error("Erro ao processar mensagem:", e.message));
+  filasContato.set(from, atual);
+  atual.finally(() => { if (filasContato.get(from) === atual) filasContato.delete(from); });
+}
 // Em produção (Railway) as imagens vão para o Volume persistente; local usa public/uploads.
 const UPLOAD_DIR = process.env.DATA_DIR ? path.join(process.env.DATA_DIR, "uploads") : path.join(PUBLIC_DIR, "uploads");
 
@@ -262,16 +282,19 @@ function iniciarAdmin(porta) {
           const nomes = {};
           for (const ct of val.contacts || []) if (ct.wa_id) nomes[ct.wa_id] = ct.profile && ct.profile.name;
           for (const msg of val.messages || []) {
-            const nomeWpp = nomes[msg.from] || Object.values(nomes)[0]; // nome do perfil do WhatsApp
+            if (jaProcessada(msg.id)) continue; // reentrega da Meta → ignora (evita resposta dupla)
+            const from = msg.from;
+            const nomeWpp = nomes[from] || Object.values(nomes)[0]; // nome do perfil do WhatsApp
             const ctxAd = contextoAnuncio(msg.referral); // veio de anúncio do Instagram/Facebook?
+            // Cada contato tem sua fila: mensagens em rajada são tratadas UMA de cada vez, em ordem.
             if (msg.type === "text" && msg.text) {
-              conversa.processar(msg.from, ctxAd + (msg.text.body || ""), nomeWpp).catch((e) => console.error("Erro ao processar mensagem:", e.message));
+              enfileirar(from, () => conversa.processar(from, ctxAd + (msg.text.body || ""), nomeWpp));
             } else if (msg.type === "image" && msg.image && msg.image.id) {
-              processarImagem(msg.from, msg.image.id, (ctxAd + (msg.image.caption || "")).trim(), nomeWpp).catch((e) => console.error("Erro na imagem:", e.message));
+              enfileirar(from, () => processarImagem(from, msg.image.id, (ctxAd + (msg.image.caption || "")).trim(), nomeWpp));
             } else if (msg.type === "audio" && msg.audio && msg.audio.id) {
-              processarAudio(msg.from, msg.audio.id, nomeWpp).catch((e) => console.error("Erro no áudio:", e.message));
+              enfileirar(from, () => processarAudio(from, msg.audio.id, nomeWpp));
             } else if (msg.type === "document" && msg.document && msg.document.id) {
-              processarDocumento(msg.from, msg.document.id, msg.document.mime_type, nomeWpp).catch((e) => console.error("Erro no documento:", e.message));
+              enfileirar(from, () => processarDocumento(from, msg.document.id, msg.document.mime_type, nomeWpp));
             }
           }
         }
