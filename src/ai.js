@@ -147,17 +147,24 @@ function buscarProdutos({ grupo, subgrupo, especificacao, texto, ordenarPor } = 
   const cat = config.get().catalogo || {};
   const produtos = (cat.produtos || []).filter((p) => p && p.ativo !== false);
   const g = norm(grupo), sg = norm(subgrupo), esp = norm(especificacao), tx = norm(texto);
-  let palavrasTx = tx.split(/\s+/).filter((w) => w && !STOPWORDS.has(w)); // casa por PALAVRA (qualquer ordem), sem conectivos
-  // Quantidades ("1kg", "10kg", "500g", "2"...) não identificam o produto e ainda casam por
-  // engano (ex.: "1kg" dentro de "10.1kg"). Ficam de fora — o que importa é a marca/tipo.
-  palavrasTx = palavrasTx.filter((w) => !/^\d/.test(w));
+  const palavrasTx = tx.split(/\s+/).filter((w) => w && !STOPWORDS.has(w)); // casa por PALAVRA (qualquer ordem), sem conectivos
   const casa = (valor, alvo) => valor && (norm(valor).includes(alvo) || alvo.includes(norm(valor)));
   const casaLista = (lista, alvo) => Array.isArray(lista) && lista.some((x) => casa(x, alvo));
   // Alvo da busca por texto: nome + descrição + tags (grupo/subgrupos/especificações).
   const alvoDe = (p) => [p.nome, p.descricao, p.grupo, ...(p.subgrupos || []), ...(p.especificacoes || [])].map(norm).join(" ");
+  const escapar = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   // Uma palavra casa se QUALQUER um dos seus sinônimos aparecer (ex.: "gato" casa "cat"; "quilo" casa "granel").
-  const expandir = (w) => SINONIMOS[w] || [w];
-  const casaPalavra = (alvo, w) => expandir(w).some((s) => alvo.includes(s));
+  const casaPalavra = (alvo, w) => {
+    if (SINONIMOS[w]) return SINONIMOS[w].some((s) => alvo.includes(s));
+    if (/^\d/.test(w)) {
+      // Quantidade (ex.: "1kg", "10kg"): casa o tamanho ESCRITO no nome como TOKEN INTEIRO —
+      // não pega "1kg" dentro de "10.1kg". Além disso, "1kg/1quilo" também = ração a GRANEL.
+      if (new RegExp("(?<![\\d.,])" + escapar(w) + "(?![a-z0-9])").test(alvo)) return true;
+      if (/^1(k|kg|kilo|quilo)/.test(w)) return alvo.includes("granel") || alvo.includes("fracionad");
+      return false;
+    }
+    return alvo.includes(w);
+  };
 
   const filtrarPor = (palavras) => produtos.filter((p) => {
     if (g && !casa(p.grupo, g)) return false;
