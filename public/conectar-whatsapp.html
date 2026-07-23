@@ -143,14 +143,14 @@
     msg("", "");
     if (!window.FB) return msg("SDK ainda carregando, tente de novo em instantes.", "err");
     FB.login((response) => {
-      if (response.authResponse && response.authResponse.code) {
-        finalizar(response.authResponse.code);
+      if (response.authResponse && response.authResponse.accessToken) {
+        finalizar(response.authResponse.accessToken);
       } else {
         msg("Conexão cancelada ou não autorizada.", "err");
       }
     }, {
       config_id: CFG.configId,
-      response_type: "code",
+      response_type: "token",
       override_default_response_type: true,
       extras: {
         setup: {},
@@ -160,15 +160,15 @@
     });
   }
 
-  // 5) Manda o code + ids pro backend concluir (troca token, inscreve webhook, salva)
-  async function finalizar(code) {
+  // 5) Manda o token + ids pro backend concluir (inscreve webhook, salva)
+  async function finalizar(token) {
     $("#btnConectar").disabled = true;
     msg("Concluindo a conexão…", "");
     try {
       const r = await fetch("/api/wa/connect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code, waba_id: sessao.waba_id, phone_number_id: sessao.phone_number_id }),
+        body: JSON.stringify({ token, waba_id: sessao.waba_id, phone_number_id: sessao.phone_number_id }),
       });
       const data = await r.json();
       if (!r.ok || !data.ok) throw new Error(data.erro || "Falha ao conectar.");

@@ -118,11 +118,11 @@ async function descobrirWabaDoToken(token) {
   throw new Error("Não foi possível descobrir a conta do WhatsApp pelo token. Tente novamente.");
 }
 
-// Fluxo completo do "Conectar WhatsApp": recebe o code (+ ids) do Embedded Signup, obtém o
-// token, inscreve nos webhooks, descobre o número (se não veio) e guarda as credenciais.
-async function conectar({ code, wabaId, phoneId }) {
-  if (!code) throw new Error("Faltou o 'code' do Embedded Signup.");
-  const token = await trocarCodePorToken(code);
+// Fluxo completo do "Conectar WhatsApp": recebe o token (ou code) do Embedded Signup,
+// inscreve nos webhooks, descobre o número (se não veio) e guarda as credenciais.
+async function conectar({ code, token, wabaId, phoneId }) {
+  if (!token && !code) throw new Error("Faltou o token (ou code) do Embedded Signup.");
+  if (!token) token = await trocarCodePorToken(code);
 
   if (!wabaId) {
     // Coexistência: featureType whatsapp_business_app_onboarding não retorna waba_id no postMessage.

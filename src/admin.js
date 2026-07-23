@@ -348,8 +348,8 @@ function iniciarAdmin(porta) {
   // Recebe o code + ids do Embedded Signup, troca por token, inscreve nos webhooks e salva.
   app.post("/api/wa/connect", async (req, res) => {
     try {
-      const { code, waba_id, phone_number_id } = req.body || {};
-      const creds = await onboard.conectar({ code, wabaId: waba_id, phoneId: phone_number_id });
+      const { code, token, waba_id, phone_number_id } = req.body || {};
+      const creds = await onboard.conectar({ code, token, wabaId: waba_id, phoneId: phone_number_id });
       estado.whatsappConectado = wa.configurado();
       res.json({ ok: true, numero: creds.numero, nomeVerificado: creds.nomeVerificado });
     } catch (e) {
