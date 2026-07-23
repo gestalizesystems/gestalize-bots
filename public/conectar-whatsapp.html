@@ -136,17 +136,29 @@
     msg("", "");
     sessao = {};
     if (!window.FB) return msg("SDK ainda carregando, aguarde.", "err");
-    FB.login((response) => {
-      if (response.authResponse && response.authResponse.code) {
-        finalizar(response.authResponse.code);
+
+    const iniciarLogin = () => {
+      FB.login((response) => {
+        if (response.authResponse && response.authResponse.code) {
+          finalizar(response.authResponse.code);
+        } else {
+          msg("Conexão cancelada ou não autorizada.", "err");
+        }
+      }, {
+        config_id: CFG.configId,
+        response_type: "code",
+        override_default_response_type: true,
+        extras: { setup: {}, featureType: "whatsapp_business_app_onboarding", sessionInfoVersion: "3" },
+      });
+    };
+
+    // Limpa qualquer sessão cacheada do SDK antes de iniciar para garantir código fresco
+    FB.getLoginStatus((status) => {
+      if (status && status.status === "connected") {
+        FB.logout(iniciarLogin);
       } else {
-        msg("Conexão cancelada ou não autorizada.", "err");
+        iniciarLogin();
       }
-    }, {
-      config_id: CFG.configId,
-      response_type: "code",
-      override_default_response_type: true,
-      extras: { setup: {}, featureType: "whatsapp_business_app_onboarding", sessionInfoVersion: "3" },
     });
   }
 
