@@ -67,17 +67,18 @@ function gerarUrlOAuth() {
 }
 
 // Troca o "code" do Embedded Signup por um token de acesso do negócio (server-side).
+// Nota: para o fluxo via JS SDK (popup) a Meta não exige redirect_uri no exchange.
 async function trocarCodePorToken(code) {
   if (!APP_ID || !APP_SECRET) throw new Error("META_APP_ID / META_APP_SECRET não configurados no .env.");
   const url = `${GRAPH}/${VERSAO}/oauth/access_token`
     + `?client_id=${encodeURIComponent(APP_ID)}`
     + `&client_secret=${encodeURIComponent(APP_SECRET)}`
-    + `&code=${encodeURIComponent(code)}`
-    + `&redirect_uri=${encodeURIComponent(getCallbackUri())}`;
+    + `&code=${encodeURIComponent(code)}`;
   const res = await fetch(url);
   const data = await res.json().catch(() => ({}));
   if (!res.ok || !data.access_token) {
-    throw new Error("Falha ao trocar código por token: " + ((data.error && data.error.message) || res.status));
+    const detalhe = data.error ? `${data.error.message} (código ${data.error.code})` : res.status;
+    throw new Error("Falha ao trocar código por token: " + detalhe);
   }
   return data.access_token;
 }
