@@ -712,7 +712,7 @@
 
         <section class="card page" id="page-equipe">
           <h2>👨‍⚕️ Equipe</h2>
-          <p class="dica">Cadastre os colaboradores (com a função). O bot usa isso pra reconhecer quando o cliente pergunta por uma pessoa pelo <b>nome</b> (ex.: "a Dra. Ana está?") ou pela <b>função</b> (ex.: "tem veterinário?") e responder do jeito certo.</p>
+          <p class="dica">Cadastre os colaboradores (com a função). O bot usa isso pra reconhecer quando o cliente pergunta por uma pessoa pelo <b>nome</b> (ex.: "a Dra. Ana está?") ou pela <b>função</b> (ex.: "tem veterinário?"). Se o colaborador tiver o <b>WhatsApp pessoal</b> cadastrado, o bot fica <b>silencioso</b> para esse número.</p>
           <div class="cat-topo">
             <input class="busca" id="eqBusca" placeholder="🔎 Buscar (nome ou função)..." oninput="eqPagina=1;renderEquipe()" />
             <button class="btn-primary" onclick="abrirMembro()">+ Adicionar colaborador</button>
@@ -730,6 +730,8 @@
               <option>Veterinário(a)</option><option>Banhista / Tosador(a)</option><option>Atendente</option>
               <option>Gerente</option><option>Recepcionista</option><option>Auxiliar</option>
             </datalist>
+            <label>WhatsApp pessoal (opcional — bot fica silencioso para esse número)</label>
+            <input type="text" id="eqTelefone" oninput="mascaraTel(this)" placeholder="(85) 99999-9999" />
             <label>Observação (opcional — especialidade, horário...)</label><textarea id="eqObs" placeholder="ex.: Atende de segunda a sexta, à tarde."></textarea>
             <div class="modal-acoes">
               <button class="btn-sec" onclick="fecharMembro()">Cancelar</button>
@@ -1578,6 +1580,7 @@
           <div class="pinfo">
             <div class="pnome">${esc(m.nome)}${m.cargo ? ` <span style="background:#dbeafe;color:#2563eb;font-size:11px;font-weight:700;padding:2px 7px;border-radius:7px">${esc(m.cargo)}</span>` : ""}</div>
             ${m.obs ? `<div class="pdesc">${esc(m.obs)}</div>` : ""}
+            ${m.telefone ? `<div class="pdesc" style="font-size:12px">🔇 Bot silencioso para ${esc(m.telefone)}</div>` : ""}
           </div>
           <div class="pacoes">
             <button class="iconbtn" title="Editar" onclick="abrirMembro('${m.id}')">✏️</button>
@@ -1593,6 +1596,8 @@
       el("eqNome").value = m ? (m.nome || "") : "";
       el("eqCargo").value = m ? (m.cargo || "") : "";
       el("eqObs").value = m ? (m.obs || "") : "";
+      el("eqTelefone").value = m && m.telefone ? m.telefone : "";
+      if (el("eqTelefone").value) mascaraTel(el("eqTelefone"));
       el("modalMembro").classList.add("aberto");
     }
     function fecharMembro() { el("modalMembro").classList.remove("aberto"); }
@@ -1600,7 +1605,7 @@
       const nome = el("eqNome").value.trim();
       if (!nome) { alert("Informe o nome do colaborador."); return; }
       try {
-        await apiCat("/api/equipe", { id: eqEditId, nome, cargo: el("eqCargo").value.trim(), obs: el("eqObs").value.trim() });
+        await apiCat("/api/equipe", { id: eqEditId, nome, cargo: el("eqCargo").value.trim(), obs: el("eqObs").value.trim(), telefone: el("eqTelefone").value.trim() });
         fecharMembro(); await carregarEquipe();
       } catch (e) { alert("Erro ao salvar: " + e.message); }
     }

@@ -548,9 +548,9 @@ function iniciarAdmin(porta) {
   app.get("/api/equipe", (req, res) => res.json({ ok: true, equipe: equipe.listar() }));
   app.post("/api/equipe", (req, res) => {
     try {
-      const { id, nome, cargo, obs } = req.body || {};
+      const { id, nome, cargo, obs, telefone } = req.body || {};
       if (!String(nome || "").trim()) throw new Error("Informe o nome do colaborador.");
-      res.json({ ok: true, membro: equipe.salvar({ id, nome, cargo, obs }) });
+      res.json({ ok: true, membro: equipe.salvar({ id, nome, cargo, obs, telefone }) });
     } catch (e) { res.status(400).json({ ok: false, erro: e.message }); }
   });
   app.post("/api/equipe/remover", (req, res) => {

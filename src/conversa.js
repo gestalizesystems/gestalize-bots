@@ -5,6 +5,7 @@ const { triar, menuPrincipal } = require("./triage");
 const { responder, limparHistorico, registrarTurno, resumirConversa } = require("./ai");
 const config = require("./config");
 const clientes = require("./clientes");
+const equipe = require("./equipe");
 const nps = require("./nps");
 const atendimentos = require("./atendimentos");
 const metricas = require("./metricas");
@@ -232,6 +233,9 @@ async function processar(from, texto, nomeWpp) {
 
   const dados = config.get();
   if (!dados.botAtivo) return;
+
+  // Funcionários cadastrados no painel não recebem mensagens do bot.
+  if (equipe.ehFuncionario(from)) return;
 
   metricas.inc("recebida");
   limparInatividade(from);
