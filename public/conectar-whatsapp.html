@@ -148,6 +148,12 @@
         atualizarStatus();
       } else if (data.type === "WA_CONNECT_ERROR") {
         aguardando = false;
+        // Se o servidor trocou o code mas não achou a WABA, e o WA_EMBEDDED_SIGNUP
+        // nos deu o waba_id ou phone_number_id, retenta conectar com esses dados.
+        if (data.tokenParaRetry && (sessao.waba_id || sessao.phone_number_id)) {
+          retentarComToken(data.tokenParaRetry);
+          return;
+        }
         msg("❌ " + (data.erro || "Erro ao conectar."), "err");
         $("#btnConectar").disabled = false;
       }
@@ -218,6 +224,31 @@
         dispararLogin();
       }
     });
+  }
+
+  // Retry automático: server passou o token mas não achou a WABA; usamos dados do WA_EMBEDDED_SIGNUP.
+  async function retentarComToken(token) {
+    msg("Concluindo conexão…", "");
+    try {
+      const r = await fetch("/api/wa/connect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token,
+          waba_id: sessao.waba_id,
+          phone_number_id: sessao.phone_number_id || sessao.phoneNumberId,
+        }),
+      });
+      const resp = await r.json();
+      if (!r.ok || !resp.ok) throw new Error(resp.erro || "Falha ao conectar.");
+      msg("✅ Número conectado!" + (resp.numero ? " (" + resp.numero + ")" : ""), "ok");
+      sessao = {};
+      await atualizarStatus();
+    } catch (e) {
+      msg("❌ " + e.message, "err");
+    } finally {
+      $("#btnConectar").disabled = false;
+    }
   }
 
   // Fallback para quando o SDK retorna o code antes de chegar o postMessage do servidor

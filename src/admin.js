@@ -355,21 +355,29 @@ function iniciarAdmin(porta) {
   app.get("/api/wa/oauth-callback", async (req, res) => {
     const { code, waba_id, phone_number_id, error, error_description } = req.query;
     if (!code) {
-      return res.send(paginaCallback(false, error_description || error || "Autorização negada."));
+      return res.send(paginaCallback({ ok: false, erro: error_description || error || "Autorização negada." }));
+    }
+    // Troca o code por token separadamente para poder repassá-lo ao front em caso de falha na
+    // descoberta da WABA — o front então reusa o token junto com o waba_id do WA_EMBEDDED_SIGNUP.
+    let token;
+    try {
+      token = await onboard.trocarCodePorToken(code);
+    } catch (e) {
+      return res.send(paginaCallback({ ok: false, erro: e.message }));
     }
     try {
-      const creds = await onboard.conectar({ code, wabaId: waba_id, phoneId: phone_number_id });
+      const creds = await onboard.conectar({ token, wabaId: waba_id, phoneId: phone_number_id });
       estado.whatsappConectado = wa.configurado();
-      res.send(paginaCallback(true, null, creds.numero));
+      res.send(paginaCallback({ ok: true, numero: creds.numero }));
     } catch (e) {
-      res.send(paginaCallback(false, e.message));
+      res.send(paginaCallback({ ok: false, erro: e.message, tokenParaRetry: token }));
     }
   });
 
-  function paginaCallback(ok, erro, numero) {
+  function paginaCallback({ ok, erro, numero, tokenParaRetry } = {}) {
     const payload = ok
       ? JSON.stringify({ type: "WA_CONNECT_SUCCESS", numero: numero || "" })
-      : JSON.stringify({ type: "WA_CONNECT_ERROR", erro: erro || "Erro desconhecido." });
+      : JSON.stringify({ type: "WA_CONNECT_ERROR", erro: erro || "Erro desconhecido.", tokenParaRetry: tokenParaRetry || null });
     return `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>
       <script>try{window.opener&&window.opener.postMessage(${payload},"*");}catch(_){}window.close();</script>
       <p style="font-family:sans-serif;padding:2rem">${ok ? "✅ Conectado! Fechando…" : "❌ " + (erro || "")}</p>
