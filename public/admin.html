@@ -499,10 +499,6 @@
         <section class=”card page” id=”page-atendimentos”>
           <h2>🔔 Atendimentos aguardando</h2>
           <p class=”dica”>Clientes que o bot encaminhou para um humano. Cada um vem com um <b>resumo da conversa feito pela IA</b>, pra você assumir rápido. Responda pelo WhatsApp e clique em “Atendido”.</p>
-          <div style=”display:flex;gap:8px;margin-bottom:18px;align-items:center”>
-            <input type=”text” id=”assumirNumero” placeholder=”Número do cliente com DDD” oninput=”mascaraTel(this)” style=”flex:1;margin:0” />
-            <button class=”btn-primary” onclick=”assumirAtendimento()” style=”white-space:nowrap;padding:10px 16px”>⏸ Pausar bot agora</button>
-          </div>
           <div id=”listaAtendimentos”></div>
           <div id=”atPager” class=”catpager”></div>
         </section>
@@ -1700,6 +1696,7 @@
           </div>
           <div class="pacoes">
             <a class="iconbtn" title="Abrir no WhatsApp" href="https://wa.me/${esc(a.telefone)}" target="_blank">💬</a>
+            <button class="btn-ghost" style="padding:7px 12px;white-space:nowrap" onclick="pausarBotCard('${esc(a.telefone)}', this)">⏸ Pausar</button>
             <button class="btn-primary" style="padding:7px 12px;white-space:nowrap" onclick="resolverAtendimento('${a.id}')">✓ Atendido</button>
           </div>
         </div>`).join("");
@@ -1710,12 +1707,10 @@
       catch (_) {}
       pintarBadgeAtendimentos(); renderAtendimentos();
     }
-    async function assumirAtendimento() {
-      const tel = (el("assumirNumero").value || "").replace(/\D/g, "");
-      if (!tel) return;
+    async function pausarBotCard(telefone, btn) {
       try {
-        const d = await (await fetch("/api/bot/pausar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ telefone: tel }) })).json();
-        if (d.ok) { atendimentosPend = d.pendentes || atendimentosPend; el("assumirNumero").value = ""; pintarBadgeAtendimentos(); renderAtendimentos(); }
+        await fetch("/api/bot/pausar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ telefone }) });
+        if (btn) { btn.textContent = "✓ Pausado"; btn.disabled = true; }
       } catch (_) {}
     }
 
