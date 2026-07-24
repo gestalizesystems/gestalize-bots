@@ -496,12 +496,14 @@
           </div>
         </div>
 
-        <section class=”card page” id=”page-atendimentos”>
-          <h2>🔔 Atendimentos aguardando</h2>
-          <p class=”dica”>Clientes que o bot encaminhou para um humano. Cada um vem com um <b>resumo da conversa feito pela IA</b>, pra você assumir rápido. Responda pelo WhatsApp e clique em “Atendido”.</p>
-          <div id=”listaAtendimentos”></div>
-          <div id=”atPager” class=”catpager”></div>
-        </section>
+        <div class=”page” id=”page-atendimentos”>
+          <div class=”card”>
+            <h2>🔔 Atendimentos aguardando</h2>
+            <p class=”dica”>Clientes que o bot encaminhou para um humano. Cada um vem com um <b>resumo da conversa feito pela IA</b>, pra você assumir rápido. Responda pelo WhatsApp e clique em “Atendido”.</p>
+            <div id=”listaAtendimentos”></div>
+            <div id=”atPager” class=”catpager”></div>
+          </div>
+        </div>
 
         <section class="card page" id="page-negocio">
           <h2>🏪 Dados do negócio</h2>
@@ -1698,6 +1700,7 @@
             <a class="iconbtn" title="Abrir no WhatsApp" href="https://wa.me/${esc(a.telefone)}" target="_blank">💬</a>
             <button class="btn-ghost" style="padding:7px 12px;white-space:nowrap" onclick="pausarBotCard('${esc(a.telefone)}', this)">⏸ Pausar</button>
             <button class="btn-primary" style="padding:7px 12px;white-space:nowrap" onclick="resolverAtendimento('${a.id}')">✓ Atendido</button>
+            <button class="iconbtn" title="Excluir registro" onclick="excluirAtendimento('${a.id}')">🗑️</button>
           </div>
         </div>`).join("");
       if (el("atPager")) el("atPager").innerHTML = montarPager(atPagina, totalPags, total, "atIrPagina", "aguardando");
@@ -1712,6 +1715,11 @@
         await fetch("/api/bot/pausar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ telefone }) });
         if (btn) { btn.textContent = "✓ Pausado"; btn.disabled = true; }
       } catch (_) {}
+    }
+    async function excluirAtendimento(id) {
+      try { const d = await (await fetch("/api/atendimentos/excluir", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) })).json(); atendimentosPend = d.pendentes || []; }
+      catch (_) {}
+      pintarBadgeAtendimentos(); renderAtendimentos();
     }
 
     // ===== Campanhas (mensagens ativas) =====

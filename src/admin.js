@@ -545,6 +545,10 @@ function iniciarAdmin(porta) {
   app.get("/api/atendimentos", (req, res) => {
     res.json({ ok: true, pendentes: atendimentos.pendentes() });
   });
+  app.post("/api/atendimentos/excluir", (req, res) => {
+    atendimentos.excluir((req.body && req.body.id) || "");
+    res.json({ ok: true, pendentes: atendimentos.pendentes() });
+  });
   app.post("/api/atendimentos/resolver", async (req, res) => {
     const id = (req.body && req.body.id) || "";
     const a = atendimentos.resolver(id);

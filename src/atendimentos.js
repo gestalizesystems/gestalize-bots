@@ -55,6 +55,11 @@ function resolver(ref) {
   return a;
 }
 
+function excluir(id) {
+  lista = lista.filter((x) => x.id !== id);
+  persistir();
+}
+
 function pendentes() {
   return lista.filter((x) => !x.atendido).sort((a, b) => (b.atualizadoEm || 0) - (a.atualizadoEm || 0));
 }
@@ -62,4 +67,4 @@ function contarPendentes() {
   return lista.filter((x) => !x.atendido).length;
 }
 
-module.exports = { registrar, resolver, pendentes, contarPendentes };
+module.exports = { registrar, resolver, excluir, pendentes, contarPendentes };
