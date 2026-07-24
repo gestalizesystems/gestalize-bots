@@ -301,7 +301,7 @@ function iniciarAdmin(porta) {
           // Detecta mensagens enviadas pelo atendente humano via Business App:
           // se o status "sent" chegar para um ID que o bot não enviou → humano respondeu.
           for (const status of val.statuses || []) {
-            if (status.status === "sent" && status.id && !conversa.ehMsgBot(status.id)) {
+            if (status.status === "sent" && status.id && !conversa.ehMsgBotPara(status.id, status.recipient_id)) {
               const dest = status.recipient_id;
               if (dest) conversa.pausarPorAtendente(String(dest));
             }
@@ -551,6 +551,16 @@ function iniciarAdmin(porta) {
     if (a && a.telefone) {
       try { await conversa.finalizarAtendimento(a.telefone); } catch (_) {}
     }
+    res.json({ ok: true, pendentes: atendimentos.pendentes() });
+  });
+
+  // Pausa o bot manualmente para um número (atendente vai assumir a conversa).
+  app.post("/api/bot/pausar", (req, res) => {
+    const tel = String((req.body && req.body.telefone) || "").replace(/\D/g, "");
+    if (!tel) return res.json({ ok: false, erro: "Telefone obrigatório." });
+    const cli = clientes.get(tel);
+    atendimentos.registrar({ telefone: tel, nome: (cli && cli.nome) || "", motivo: "Atendente assumiu a conversa", resumo: "Pausa manual pelo painel." });
+    conversa.pausarBot(tel);
     res.json({ ok: true, pendentes: atendimentos.pendentes() });
   });
 

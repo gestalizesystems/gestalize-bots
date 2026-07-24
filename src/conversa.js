@@ -16,28 +16,45 @@ function configurar(fnTexto, fnImagem) {
   if (fnTexto) _enviarTexto = fnTexto;
   if (fnImagem) _enviarImagem = fnImagem;
 }
-// IDs de mensagens enviadas pelo bot (para detectar respostas humanas via webhook statuses).
+// Rastreamento de mensagens enviadas pelo bot para detectar respostas humanas via statuses.
 const botMsgIds = new Set();
+const pendingSends = new Set(); // contatos com envio em andamento (evita race condition)
 function registrarMsgEnviada(resp) {
   const id = resp && resp.messages && resp.messages[0] && resp.messages[0].id;
   if (!id) return;
   botMsgIds.add(id);
   if (botMsgIds.size > 5000) { const it = botMsgIds.values(); for (let i = 0; i < 1000; i++) botMsgIds.delete(it.next().value); }
 }
-function ehMsgBot(id) { return id ? botMsgIds.has(id) : true; }
+// Retorna true se o status/id é de uma mensagem do bot (ou envio em andamento para o destinatário).
+function ehMsgBotPara(id, recipient) {
+  if (!id) return true;
+  if (botMsgIds.has(id)) return true;
+  if (recipient && pendingSends.has(String(recipient))) return true; // envio ainda em flight
+  return false;
+}
 
 // Wrappers que contam as mensagens enviadas (métricas do dashboard).
 async function enviar(para, texto) {
   metricas.inc("enviada");
-  const resp = await _enviarTexto(para, texto);
-  registrarMsgEnviada(resp);
-  return resp;
+  pendingSends.add(String(para));
+  try {
+    const resp = await _enviarTexto(para, texto);
+    registrarMsgEnviada(resp);
+    return resp;
+  } finally {
+    pendingSends.delete(String(para));
+  }
 }
 async function enviarImagem(para, link, legenda) {
   metricas.inc("enviada");
-  const resp = await _enviarImagem(para, link, legenda);
-  registrarMsgEnviada(resp);
-  return resp;
+  pendingSends.add(String(para));
+  try {
+    const resp = await _enviarImagem(para, link, legenda);
+    registrarMsgEnviada(resp);
+    return resp;
+  } finally {
+    pendingSends.delete(String(para));
+  }
 }
 
 // URL pública do painel (pra montar o link das fotos do catálogo no WhatsApp).
@@ -219,12 +236,20 @@ function pausar(contactId) {
   agendarInatividade(contactId);
 }
 
-// Chamada quando o webhook detecta que um atendente humano respondeu pelo Business App.
+// Detecta resposta humana via webhook statuses: só pausa se há sessão ativa do bot.
 function pausarPorAtendente(contactId) {
-  if (pausados.has(contactId)) return; // já pausado (ex: handoff manual)
+  if (pausados.has(contactId)) return;
+  const temSessao = jaSaudou.has(contactId) || aguardandoNome.has(contactId) || aguardandoNps.has(contactId);
+  if (!temSessao) return; // sem sessão ativa → ignora (evita falsos positivos pós-reinício)
   pausados.set(contactId, { ultimaMsg: Date.now(), porAtendente: true });
   agendarInatividade(contactId);
   console.log(`[bot] Atendente respondeu → bot pausado 1h para ${contactId}`);
+}
+
+// Pausa forçada pelo painel (botão "Assumir atendimento") — sem verificar sessão ativa.
+function pausarBot(contactId) {
+  pausados.set(contactId, { ultimaMsg: Date.now(), porAtendente: true });
+  agendarInatividade(contactId);
 }
 
 async function aoSilenciar(contactId) {
@@ -589,4 +614,4 @@ async function finalizarAtendimento(contactId) {
   try { await encerrarComNps(contactId, "Atendimento finalizado, qualquer coisa é só chamar! 🐾"); } catch (_) {}
 }
 
-module.exports = { configurar, processar, pausarPorAtendente, ehMsgBot, finalizar, finalizarAtendimento };
+module.exports = { configurar, processar, pausarPorAtendente, pausarBot, ehMsgBotPara, finalizar, finalizarAtendimento };
