@@ -40,6 +40,7 @@ function salvar(telefone, dados = {}) {
   if (dados.endereco != null && String(dados.endereco).trim()) atual.endereco = String(dados.endereco).trim();
   if (dados.avisoEnviado) atual.avisoEnviado = true;
   if (dados.preBotClearado) atual.preBotClearado = true;
+  if (dados.diaAtendido !== undefined) atual.diaAtendido = dados.diaAtendido || null;
   atual.telefone = telefone;
   atual.atualizadoEm = Date.now();
   clientes[telefone] = atual;

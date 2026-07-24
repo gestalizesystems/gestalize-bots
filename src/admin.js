@@ -27,8 +27,6 @@ async function processarAudio(from, mediaId, nomeWpp) {
     const { buffer, mimeType } = await wa.baixarMidia(mediaId);
     const texto = await ai.transcreverAudio(buffer.toString("base64"), mimeType);
     if (texto && texto.trim()) {
-      // Eco da transcrição: confirma o que o bot entendeu (visível pra cliente e atendente no chat).
-      try { await wa.enviarTexto(from, `🎤 _Entendi seu áudio:_ "${texto.trim()}"`); } catch (_) {}
       await conversa.processar(from, texto.trim(), nomeWpp);
     } else {
       try { await wa.enviarTexto(from, "Desculpa, não consegui entender o áudio 🙏 Pode me mandar por texto?"); } catch (_) {}
@@ -300,6 +298,14 @@ function iniciarAdmin(porta) {
               enfileirar(from, () => processarDocumento(from, msg.document.id, msg.document.mime_type, nomeWpp));
             }
           }
+          // Detecta mensagens enviadas pelo atendente humano via Business App:
+          // se o status "sent" chegar para um ID que o bot não enviou → humano respondeu.
+          for (const status of val.statuses || []) {
+            if (status.status === "sent" && status.id && !conversa.ehMsgBot(status.id)) {
+              const dest = status.recipient_id;
+              if (dest) conversa.pausarPorAtendente(String(dest));
+            }
+          }
         }
       }
     } catch (e) {
@@ -539,8 +545,12 @@ function iniciarAdmin(porta) {
   app.get("/api/atendimentos", (req, res) => {
     res.json({ ok: true, pendentes: atendimentos.pendentes() });
   });
-  app.post("/api/atendimentos/resolver", (req, res) => {
-    atendimentos.resolver((req.body && req.body.id) || "");
+  app.post("/api/atendimentos/resolver", async (req, res) => {
+    const id = (req.body && req.body.id) || "";
+    const a = atendimentos.resolver(id);
+    if (a && a.telefone) {
+      try { await conversa.finalizarAtendimento(a.telefone); } catch (_) {}
+    }
     res.json({ ok: true, pendentes: atendimentos.pendentes() });
   });
 

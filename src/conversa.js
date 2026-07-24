@@ -16,9 +16,29 @@ function configurar(fnTexto, fnImagem) {
   if (fnTexto) _enviarTexto = fnTexto;
   if (fnImagem) _enviarImagem = fnImagem;
 }
+// IDs de mensagens enviadas pelo bot (para detectar respostas humanas via webhook statuses).
+const botMsgIds = new Set();
+function registrarMsgEnviada(resp) {
+  const id = resp && resp.messages && resp.messages[0] && resp.messages[0].id;
+  if (!id) return;
+  botMsgIds.add(id);
+  if (botMsgIds.size > 5000) { const it = botMsgIds.values(); for (let i = 0; i < 1000; i++) botMsgIds.delete(it.next().value); }
+}
+function ehMsgBot(id) { return id ? botMsgIds.has(id) : true; }
+
 // Wrappers que contam as mensagens enviadas (métricas do dashboard).
-async function enviar(para, texto) { metricas.inc("enviada"); return _enviarTexto(para, texto); }
-async function enviarImagem(para, link, legenda) { metricas.inc("enviada"); return _enviarImagem(para, link, legenda); }
+async function enviar(para, texto) {
+  metricas.inc("enviada");
+  const resp = await _enviarTexto(para, texto);
+  registrarMsgEnviada(resp);
+  return resp;
+}
+async function enviarImagem(para, link, legenda) {
+  metricas.inc("enviada");
+  const resp = await _enviarImagem(para, link, legenda);
+  registrarMsgEnviada(resp);
+  return resp;
+}
 
 // URL pública do painel (pra montar o link das fotos do catálogo no WhatsApp).
 const PUBLIC_URL = (process.env.PUBLIC_URL || "https://bots.gestalizesystems.com.br").replace(/\/$/, "");
@@ -80,6 +100,12 @@ function garantirPreBot() {
 
 const PAUSA_SILENCIO_MS = 60 * 60 * 1000;
 const SEM_RESPOSTA_MS = 2 * 60 * 60 * 1000;
+
+function hojeData() {
+  const tz = (config.get().expediente && config.get().expediente.timezone) || "America/Fortaleza";
+  try { return new Intl.DateTimeFormat("sv-SE", { timeZone: tz }).format(new Date()); }
+  catch (_) { return new Date().toISOString().slice(0, 10); }
+}
 
 const FECHO_PALAVRAS = ["nao", "no", "obrigado", "obrigada", "obg", "vlw", "valeu", "era so isso", "so isso", "so isso mesmo", "era isso", "isso mesmo", "tudo certo", "ok", "blz", "beleza", "nada mais", "agradecido", "grato", "grata", "por enquanto so"];
 
@@ -188,13 +214,28 @@ function limparInatividade(contactId) {
 }
 
 function pausar(contactId) {
-  pausados.set(contactId, { ultimaMsg: Date.now() });
+  const existente = pausados.get(contactId);
+  pausados.set(contactId, { ultimaMsg: Date.now(), porAtendente: (existente && existente.porAtendente) || false });
   agendarInatividade(contactId);
+}
+
+// Chamada quando o webhook detecta que um atendente humano respondeu pelo Business App.
+function pausarPorAtendente(contactId) {
+  if (pausados.has(contactId)) return; // já pausado (ex: handoff manual)
+  pausados.set(contactId, { ultimaMsg: Date.now(), porAtendente: true });
+  agendarInatividade(contactId);
+  console.log(`[bot] Atendente respondeu → bot pausado 1h para ${contactId}`);
 }
 
 async function aoSilenciar(contactId) {
   inatividade.delete(contactId);
+  const pausa = pausados.get(contactId);
   pausados.delete(contactId);
+  if (pausa && pausa.porAtendente) {
+    // Atendente humano estava respondendo — retoma silenciosamente (sem "Ainda por aí?")
+    console.log(`[bot] 1h sem atividade → bot retomado para ${contactId}`);
+    return;
+  }
   try {
     await enviar(contactId, "Ainda por aí? 😊 Se precisar de mais alguma coisa, é só me chamar!");
     aguardandoFecho.set(contactId, { timer: setTimeout(() => finalizar(contactId, true), SEM_RESPOSTA_MS) });
@@ -215,6 +256,7 @@ async function finalizar(contactId, enviarDespedida) {
   aguardandoNpsComentario.delete(contactId);
   historicoConversa.delete(contactId);
   preBot.delete(contactId); // conversa encerrada → sai do modo pré-bot se estiver lá
+  clientes.salvar(contactId, { diaAtendido: hojeData() }); // bloqueia nova sessão do bot hoje
   atendimentos.resolver(contactId);
   limparHistorico(contactId);
   if (enviarDespedida) {
@@ -236,6 +278,12 @@ async function processar(from, texto, nomeWpp) {
 
   // Funcionários cadastrados no painel não recebem mensagens do bot.
   if (equipe.ehFuncionario(from)) return;
+
+  // Auto-salva o nome do perfil WhatsApp se o cliente ainda não tem nome cadastrado.
+  if (nomeWpp && String(nomeWpp).trim()) {
+    const cliAtual = clientes.get(from);
+    if (!cliAtual || !cliAtual.nome) clientes.salvar(from, { nome: String(nomeWpp).trim() });
+  }
 
   metricas.inc("recebida");
   limparInatividade(from);
@@ -349,6 +397,13 @@ async function processar(from, texto, nomeWpp) {
 
     clientes.salvar(from, { nome });
 
+    if (!rTriagem) {
+      // Pergunta já foi respondida durante a saudação — apenas acolhe o nome
+      await enviar(from, `Prazer, ${nome}! 🐾 Se precisar de mais alguma coisa, é só chamar. 😊`);
+      agendarInatividade(from);
+      return;
+    }
+
     if (rTriagem && rTriagem.tipo === "atendente") {
       await enviar(from, `Prazer, ${nome}! 🐾 ` + config.preencher(dados.mensagens.atendente));
       pausar(from);
@@ -405,6 +460,20 @@ async function processar(from, texto, nomeWpp) {
     else menuContexto.delete(from);
   }
 
+  // ── Silencioso para clientes já atendidos hoje ───────────────────────────
+  // Após finalizar() o campo diaAtendido é gravado. Se o cliente retornar no
+  // mesmo dia sem mandar saudação, o bot fica quieto (humano cuida do restante).
+  {
+    const cliHoje = clientes.get(from);
+    if (cliHoje && cliHoje.diaAtendido === hojeData()) {
+      if (r.saudacao) {
+        clientes.salvar(from, { diaAtendido: null }); // nova saudação = nova sessão permitida
+      } else {
+        return;
+      }
+    }
+  }
+
   // ── Primeiro contato (ainda não saudou nesta sessão) ────────────────────
   if (!jaSaudou.has(from)) {
     jaSaudou.add(from);
@@ -414,13 +483,45 @@ async function processar(from, texto, nomeWpp) {
     const avisoTexto = deveAviso ? ("\n\n" + AVISO_SISTEMA) : "";
 
     if (!cli || !cli.nome) {
-      // Contato desconhecido → SEMPRE pede o nome antes de qualquer resposta.
-      // Guarda o texto e resultado da triagem para usar quando o nome chegar.
-      aguardandoNome.set(from, { textoOriginal: texto, rTriagem: r });
       menuContexto.delete(from);
       const msgBV = config.preencher(dados.mensagens.saudacaoNome || "Olá! 🐾 Seja muito bem-vindo(a) à {nome}! Como posso te chamar? 😊");
+
+      if (r.saudacao) {
+        // Saudação pura → pede nome e aguarda
+        aguardandoNome.set(from, { textoOriginal: texto, rTriagem: r });
+        await enviar(from, msgBV + avisoTexto);
+        if (deveAviso) clientes.salvar(from, { avisoEnviado: true });
+        agendarInatividade(from);
+        return;
+      }
+
+      // Pergunta direta de novo cliente → responde junto com a saudação (sem aguardar nome)
+      aguardandoNome.set(from, { textoOriginal: texto, rTriagem: null }); // null = já respondeu
       await enviar(from, msgBV + avisoTexto);
       if (deveAviso) clientes.salvar(from, { avisoEnviado: true });
+
+      if (r.tipo === "atendente") {
+        await enviar(from, r.resposta);
+        pausar(from);
+        await abrirHandoff(from, "Cliente pediu para falar com um atendente.");
+        return;
+      }
+      if (r.resposta) {
+        await enviar(from, r.resposta);
+        if (r.tipo === "opcao" || r.tipo === "mensagem") {
+          registrarTurno(from, texto, r.resposta);
+          if (r.titulo) metricas.registrarServico(r.titulo);
+        }
+      } else {
+        const respIA = await responder(from, texto);
+        await enviar(from, (respIA.texto || "").trim());
+        if (respIA.encaminhar) {
+          pausar(from);
+          await abrirHandoff(from, respIA.motivo || "IA encaminhou para atendente.");
+          return;
+        }
+        if (respIA.produtos && respIA.produtos.length) await enviarProdutos(from, respIA.produtos);
+      }
       agendarInatividade(from);
       return;
     }
@@ -481,4 +582,11 @@ async function processar(from, texto, nomeWpp) {
   if (resp.produtos && resp.produtos.length) await enviarProdutos(from, resp.produtos);
 }
 
-module.exports = { configurar, processar };
+// Chamada pelo painel quando o atendente clica em "Atendido":
+// limpa o estado em memória, grava diaAtendido e envia a pesquisa de satisfação.
+async function finalizarAtendimento(contactId) {
+  await finalizar(contactId, false);
+  try { await encerrarComNps(contactId, "Atendimento finalizado, qualquer coisa é só chamar! 🐾"); } catch (_) {}
+}
+
+module.exports = { configurar, processar, pausarPorAtendente, ehMsgBot, finalizar, finalizarAtendimento };
