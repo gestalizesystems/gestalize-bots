@@ -125,8 +125,8 @@ const SINONIMOS = {
   urinary: ["urinaria", "urinario", "urinary"],
   filhote: ["filhote", "filhotes", "filhotinho", "puppy", "kitten", "junior"],
   filhotes: ["filhote", "filhotes", "puppy", "kitten", "junior"],
-  adulto: ["adulto", "adultos", "adult"],
-  adultos: ["adulto", "adultos", "adult"],
+  adulto: ["adulto", "adultos", "adult", " ad "],  // " ad " = abreviação de adulto em nomes de produtos
+  adultos: ["adulto", "adultos", "adult", " ad "],
   senior: ["senior", "idoso", "idosa", "mature"],
   idoso: ["senior", "idoso", "idosa", "mature"],
   castrado: ["castrado", "castrada", "castrados", "cast", "neutered", "sterili"],
