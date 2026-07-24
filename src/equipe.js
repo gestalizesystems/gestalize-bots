@@ -50,7 +50,13 @@ function salvar({ id, nome, cargo, obs, telefone } = {}) {
 function ehFuncionario(telefone) {
   if (!telefone) return false;
   const dig = String(telefone).replace(/\D/g, "");
-  return lista.some((m) => m.telefone && (dig === m.telefone || dig.endsWith(m.telefone)));
+  const comFone = lista.filter((m) => m.telefone);
+  if (!comFone.length) return false;
+  const match = comFone.some((m) => dig === m.telefone || dig.endsWith(m.telefone));
+  if (!match) {
+    console.log(`[equipe] from=${dig} | funcionários: ${comFone.map((m) => m.nome + "=" + m.telefone).join(", ")}`);
+  }
+  return match;
 }
 
 function remover(id) {
