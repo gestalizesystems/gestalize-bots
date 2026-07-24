@@ -1286,13 +1286,15 @@
     function abrirAtendimentos() { mostrarPagina("page-atendimentos", document.querySelector('.nav-item[data-target="page-atendimentos"]')); }
     function renderTempoReal() {
       const c = el("dashTempoReal"); if (!c) return;
-      const lista = atendimentosPend || [];
+      const lista = (conversasAtivas || []).filter(a => a.estado === "aguardando");
       if (!lista.length) { c.innerHTML = '<p class="dica" style="padding:10px 2px">Nenhum cliente aguardando atendimento no momento. 🎉</p>'; return; }
+      const tagCor = { aguardando: "#ef4444", atendente: "#2563eb", bot: "#16a34a" };
+      const tagLabel = { aguardando: "Aguardando", atendente: "Atendente", bot: "Bot" };
       c.innerHTML = lista.slice(0, 3).map(a => `
         <div class="rt"><div class="av">${esc((a.nome || "?").charAt(0).toUpperCase())}</div>
-          <div class="info"><div class="nome">${esc(a.nome || "(sem nome)")}</div><div class="msg">${esc(a.resumo || a.motivo || "")}</div></div>
-          <div class="dir"><span class="tag humano">Aguardando</span><div class="tempo">há ${tempoRel(a.atualizadoEm)}</div></div></div>`).join("")
-        + `<button class="add" style="width:100%;margin-top:8px" onclick="abrirAtendimentos()">Ver mais (${lista.length}) →</button>`;
+          <div class="info"><div class="nome">${esc(a.nome || "(sem nome)")}</div><div class="msg">${esc((a.atendimento && (a.atendimento.resumo || a.atendimento.motivo)) || "")}</div></div>
+          <div class="dir"><span class="tag humano" style="background:${tagCor[a.estado]||"#64748b"}">${tagLabel[a.estado]||a.estado}</span><div class="tempo">${a.ultimaMsgTs ? "há " + tempoRel(a.ultimaMsgTs) : ""}</div></div></div>`).join("")
+        + `<button class="add" style="width:100%;margin-top:8px" onclick="abrirAtendimentos()">Ver mais (${(conversasAtivas||[]).length}) →</button>`;
     }
     function renderServicos(m) {
       const top = (m && m.topServicos) || [];
@@ -1664,7 +1666,7 @@
     }
 
     // ===== Atendimentos (fila de handoff com resumo da IA) =====
-    let atendimentosPend = [], atPagina = 1;
+    let conversasAtivas = [], atPagina = 1;
     function atIrPagina(n) { atPagina = n; renderAtendimentos(); const c = el("listaAtendimentos"); if (c) c.scrollIntoView({ block: "start" }); }
     function tempoRel(ms) {
       const s = Math.floor((Date.now() - ms) / 1000);
@@ -1675,51 +1677,72 @@
     }
     function pintarBadgeAtendimentos() {
       const b = el("navAtBadge"); if (!b) return;
-      const n = atendimentosPend.length;
+      const n = conversasAtivas.filter(c => c.estado === "aguardando").length;
       b.textContent = n; b.style.display = n ? "inline-flex" : "none";
     }
     async function carregarAtendimentos() {
-      try { const d = await (await fetch("/api/atendimentos")).json(); atendimentosPend = d.pendentes || []; }
-      catch (_) { atendimentosPend = []; }
+      try { const d = await (await fetch("/api/conversas")).json(); conversasAtivas = d.conversas || []; }
+      catch (_) { conversasAtivas = []; }
       pintarBadgeAtendimentos(); renderAtendimentos(); renderTempoReal();
     }
     function renderAtendimentos() {
       const c = el("listaAtendimentos"); if (!c) return;
-      if (!atendimentosPend.length) { c.innerHTML = '<p class="dica">Nenhum cliente aguardando atendimento. 🎉</p>'; if (el("atPager")) el("atPager").innerHTML = ""; return; }
-      const POR = 15, total = atendimentosPend.length, totalPags = Math.ceil(total / POR);
+      if (!conversasAtivas.length) { c.innerHTML = '<p class="dica">Nenhuma conversa ativa no momento. 🎉</p>'; if (el("atPager")) el("atPager").innerHTML = ""; return; }
+      const POR = 15, total = conversasAtivas.length, totalPags = Math.ceil(total / POR);
       atPagina = Math.min(Math.max(1, atPagina), totalPags || 1);
       const ini = (atPagina - 1) * POR;
-      c.innerHTML = atendimentosPend.slice(ini, ini + POR).map(a => `
-        <div class="prod" style="align-items:flex-start">
-          <div class="semimg" style="background:#fee2e2">🔔</div>
+      const cfg_estado = {
+        aguardando: { ico: "🔔", bg: "#fee2e2", badge: '<span style="background:#ef4444;color:#fff;font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px">Aguardando atendimento</span>' },
+        atendente:  { ico: "⏸", bg: "#dbeafe", badge: '<span style="background:#2563eb;color:#fff;font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px">Com atendente</span>' },
+        bot:        { ico: "🤖", bg: "#dcfce7", badge: '<span style="background:#16a34a;color:#fff;font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px">Com o bot</span>' },
+      };
+      c.innerHTML = conversasAtivas.slice(ini, ini + POR).map(a => {
+        const st = cfg_estado[a.estado] || cfg_estado.bot;
+        const ts = a.ultimaMsgTs || (a.atendimento && a.atendimento.atualizadoEm) || 0;
+        const resumo = a.atendimento ? (a.atendimento.resumo || a.atendimento.motivo || "") : "";
+        const acoes = a.estado === "aguardando"
+          ? `<button class="btn-primary" style="padding:7px 12px;white-space:nowrap" onclick="resolverAtendimento('${esc(a.atendimento.id)}')">✓ Atendido</button>
+             <button class="iconbtn" title="Excluir registro" onclick="excluirAtendimento('${esc(a.atendimento.id)}')">🗑️</button>`
+          : a.estado === "bot"
+          ? `<button class="btn-ghost" style="padding:7px 12px;white-space:nowrap" onclick="pausarBotCard('${esc(a.telefone)}', this)">⏸ Pausar</button>
+             <button class="btn-primary" style="padding:7px 12px;white-space:nowrap" onclick="finalizarConversa('${esc(a.telefone)}')">✓ Finalizar</button>`
+          : `<button class="btn-primary" style="padding:7px 12px;white-space:nowrap" onclick="finalizarConversa('${esc(a.telefone)}')">✓ Finalizar</button>`;
+        return `<div class="prod" style="align-items:flex-start">
+          <div class="semimg" style="background:${st.bg}">${st.ico}</div>
           <div class="pinfo">
-            <div class="pnome">${esc(a.nome || "(sem nome)")} <span style="font-size:12px;color:var(--suave);font-weight:600">📞 ${esc(a.telefone)} · há ${tempoRel(a.atualizadoEm)}</span></div>
-            <div class="pdesc" style="color:#334155">📝 ${esc(a.resumo || a.motivo || "")}</div>
+            <div class="pnome">${esc(a.nome || "(sem nome)")} <span style="font-size:12px;color:var(--suave);font-weight:600">📞 ${esc(a.telefone)}${ts ? " · há " + tempoRel(ts) : ""}</span></div>
+            <div style="margin:3px 0">${st.badge}</div>
+            ${resumo ? `<div class="pdesc" style="color:#334155;margin-top:4px">📝 ${esc(resumo)}</div>` : ""}
           </div>
           <div class="pacoes">
             <a class="iconbtn" title="Abrir no WhatsApp" href="https://wa.me/${esc(a.telefone)}" target="_blank">💬</a>
-            <button class="btn-ghost" style="padding:7px 12px;white-space:nowrap" onclick="pausarBotCard('${esc(a.telefone)}', this)">⏸ Pausar</button>
-            <button class="btn-primary" style="padding:7px 12px;white-space:nowrap" onclick="resolverAtendimento('${a.id}')">✓ Atendido</button>
-            <button class="iconbtn" title="Excluir registro" onclick="excluirAtendimento('${a.id}')">🗑️</button>
+            ${acoes}
           </div>
-        </div>`).join("");
-      if (el("atPager")) el("atPager").innerHTML = montarPager(atPagina, totalPags, total, "atIrPagina", "aguardando");
+        </div>`;
+      }).join("");
+      if (el("atPager")) el("atPager").innerHTML = montarPager(atPagina, totalPags, total, "atIrPagina", "conversa");
     }
     async function resolverAtendimento(id) {
-      try { const d = await (await fetch("/api/atendimentos/resolver", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) })).json(); atendimentosPend = d.pendentes || []; }
+      try { await fetch("/api/atendimentos/resolver", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) }); }
       catch (_) {}
-      pintarBadgeAtendimentos(); renderAtendimentos();
+      await carregarAtendimentos();
     }
     async function pausarBotCard(telefone, btn) {
       try {
         await fetch("/api/bot/pausar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ telefone }) });
         if (btn) { btn.textContent = "✓ Pausado"; btn.disabled = true; }
       } catch (_) {}
+      setTimeout(carregarAtendimentos, 500);
+    }
+    async function finalizarConversa(telefone) {
+      try { await fetch("/api/conversa/finalizar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ telefone }) }); }
+      catch (_) {}
+      await carregarAtendimentos();
     }
     async function excluirAtendimento(id) {
-      try { const d = await (await fetch("/api/atendimentos/excluir", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) })).json(); atendimentosPend = d.pendentes || []; }
+      try { await fetch("/api/atendimentos/excluir", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) }); }
       catch (_) {}
-      pintarBadgeAtendimentos(); renderAtendimentos();
+      await carregarAtendimentos();
     }
 
     // ===== Campanhas (mensagens ativas) =====

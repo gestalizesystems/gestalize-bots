@@ -92,6 +92,7 @@ const aguardandoNps = new Set();
 const aguardandoNpsComentario = new Map();
 const historicoConversa = new Map();
 const ausenciaEnviada = new Map();
+const ultimaMsgTs = new Map();         // contactId -> timestamp da última mensagem recebida
 const AUSENCIA_THROTTLE_MS = 60 * 60 * 1000;
 const inatividade = new Map();
 
@@ -281,6 +282,7 @@ async function finalizar(contactId, enviarDespedida) {
   aguardandoNpsComentario.delete(contactId);
   historicoConversa.delete(contactId);
   preBot.delete(contactId); // conversa encerrada → sai do modo pré-bot se estiver lá
+  ultimaMsgTs.delete(contactId);
   clientes.salvar(contactId, { diaAtendido: hojeData() }); // bloqueia nova sessão do bot hoje
   atendimentos.resolver(contactId);
   limparHistorico(contactId);
@@ -304,6 +306,7 @@ async function processar(from, texto, nomeWpp) {
   // Funcionários cadastrados no painel não recebem mensagens do bot.
   if (equipe.ehFuncionario(from)) return;
 
+  ultimaMsgTs.set(from, Date.now());
   metricas.inc("recebida");
   limparInatividade(from);
 
@@ -608,4 +611,19 @@ async function finalizarAtendimento(contactId) {
   try { await encerrarComNps(contactId, "Atendimento finalizado, qualquer coisa é só chamar! 🐾"); } catch (_) {}
 }
 
-module.exports = { configurar, processar, pausarPorAtendente, pausarBot, ehMsgBotPara, finalizar, finalizarAtendimento };
+function conversasAtivas() {
+  const todos = new Set([
+    ...jaSaudou,
+    ...aguardandoNome.keys(),
+    ...aguardandoNps,
+    ...aguardandoFecho.keys(),
+    ...pausados.keys(),
+  ]);
+  return Array.from(todos).map(id => {
+    const pausa = pausados.get(id);
+    const estado = (pausa && pausa.porAtendente) ? "atendente" : "bot";
+    return { contactId: id, estado, ultimaMsgTs: ultimaMsgTs.get(id) || (pausa && pausa.ultimaMsg) || 0 };
+  });
+}
+
+module.exports = { configurar, processar, pausarPorAtendente, pausarBot, ehMsgBotPara, finalizar, finalizarAtendimento, conversasAtivas };

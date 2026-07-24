@@ -562,10 +562,40 @@ function iniciarAdmin(porta) {
   app.post("/api/bot/pausar", (req, res) => {
     const tel = String((req.body && req.body.telefone) || "").replace(/\D/g, "");
     if (!tel) return res.json({ ok: false, erro: "Telefone obrigatório." });
-    const cli = clientes.get(tel);
-    atendimentos.registrar({ telefone: tel, nome: (cli && cli.nome) || "", motivo: "Atendente assumiu a conversa", resumo: "Pausa manual pelo painel." });
     conversa.pausarBot(tel);
-    res.json({ ok: true, pendentes: atendimentos.pendentes() });
+    res.json({ ok: true });
+  });
+
+  // Finaliza uma conversa ativa pelo número de telefone (sem atendimento registrado).
+  app.post("/api/conversa/finalizar", async (req, res) => {
+    const tel = String((req.body && req.body.telefone) || "").replace(/\D/g, "");
+    if (!tel) return res.json({ ok: false });
+    try { await conversa.finalizarAtendimento(tel); } catch (_) {}
+    res.json({ ok: true });
+  });
+
+  // Lista todas as conversas ativas (bot + atendente + aguardando humano).
+  app.get("/api/conversas", (req, res) => {
+    const ativas = conversa.conversasAtivas();
+    const pendentesAt = atendimentos.pendentes();
+    const atMap = new Map(pendentesAt.map(a => [a.telefone, a]));
+    const resultado = ativas.map(c => {
+      const cli = clientes.get(c.contactId);
+      const at = atMap.get(c.contactId);
+      return {
+        telefone: c.contactId,
+        nome: (cli && cli.nome) || "",
+        estado: at ? "aguardando" : c.estado,
+        ultimaMsgTs: c.ultimaMsgTs,
+        atendimento: at || null,
+      };
+    }).sort((a, b) => {
+      const ord = { aguardando: 0, atendente: 1, bot: 2 };
+      const diff = (ord[a.estado] ?? 3) - (ord[b.estado] ?? 3);
+      return diff || (b.ultimaMsgTs || 0) - (a.ultimaMsgTs || 0);
+    });
+    const aguardando = resultado.filter(c => c.estado === "aguardando").length;
+    res.json({ conversas: resultado, aguardando });
   });
 
   // ---- Equipe / colaboradores ----
