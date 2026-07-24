@@ -303,7 +303,7 @@ function iniciarAdmin(porta) {
           for (const status of val.statuses || []) {
             if (status.status === "sent" && status.id && !conversa.ehMsgBotPara(status.id, status.recipient_id)) {
               const dest = status.recipient_id;
-              if (dest) conversa.pausarPorAtendente(String(dest));
+              if (dest) conversa.pausarBot(String(dest));
             }
           }
         }

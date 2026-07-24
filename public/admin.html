@@ -939,7 +939,7 @@
 
     // ===== Navegação por telas (cada menu abre uma página própria) =====
     function mostrarPagina(id, navEl) {
-      document.querySelectorAll(".page").forEach(p => p.classList.toggle("ativa", p.id === id));
+      document.querySelectorAll(".page").forEach(p => { p.style.display = (p.id === id) ? "block" : "none"; p.classList.toggle("ativa", p.id === id); });
       document.querySelectorAll(".nav-item").forEach(n => n.classList.toggle("active", n.dataset.target === id));
       const ehDash = id === "page-dashboard";
       el("btnSalvar").style.display = ehDash ? "none" : "";

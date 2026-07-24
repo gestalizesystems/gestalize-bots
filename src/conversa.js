@@ -304,12 +304,6 @@ async function processar(from, texto, nomeWpp) {
   // Funcionários cadastrados no painel não recebem mensagens do bot.
   if (equipe.ehFuncionario(from)) return;
 
-  // Auto-salva o nome do perfil WhatsApp se o cliente ainda não tem nome cadastrado.
-  if (nomeWpp && String(nomeWpp).trim()) {
-    const cliAtual = clientes.get(from);
-    if (!cliAtual || !cliAtual.nome) clientes.salvar(from, { nome: String(nomeWpp).trim() });
-  }
-
   metricas.inc("recebida");
   limparInatividade(from);
 
